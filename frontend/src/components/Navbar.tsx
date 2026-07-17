@@ -293,7 +293,7 @@ export default function Navbar() {
                   href="/signup"
                   className="bg-orange-600 text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-full hover:bg-orange-500 hover:scale-105 transition-all shadow-md"
                 >
-                  Book a trek
+                  Sign Up
                 </Link>
               </div>
             )}

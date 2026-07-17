@@ -14,32 +14,55 @@ generator client {
 
 // User Roles: SUPER_ADMIN, ADMIN, TREK_LEADER, VOLUNTEER, USER
 model User {
-  id           String      @id @default(uuid())
-  email        String      @unique
-  name         String
-  passwordHash String
-  role         String      @default("USER") // SUPER_ADMIN, ADMIN, TREK_LEADER, VOLUNTEER, USER
-  avatarUrl    String?
-  googleId     String?
-  referralCode String      @unique
-  referredBy   String?
-  rewardPoints Int         @default(0)
-  badgeLevel   String      @default("BRONZE_EXPLORER") // BRONZE_EXPLORER, SILVER_ADVENTURER, GOLD_MOUNTAIN_WARRIOR, SUMMIT_LEGEND
-  bloodGroup   String?
-  allergies    String?
-  medicalNotes String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  bookings     Booking[]
-  orders       Order[]
-  reviews      Review[]
-  blogs        Blog[]
-  memories     Memory[]
-  likes        MemoryLike[]
-  comments     MemoryComment[]
-  eventLeaders EventLeader[]
-  auditLogs    AuditLog[]
-  notifications Notification[]
+  id                        String         @id @default(uuid())
+  email                     String         @unique
+  name                      String
+  passwordHash              String
+  phone                     String?        @unique
+  role                      String         @default("USER") // SUPER_ADMIN, ADMIN, TREK_LEADER, VOLUNTEER, USER
+  avatarUrl                 String?
+  googleId                  String?
+  referralCode              String         @unique
+  referredBy                String?
+  rewardPoints              Int            @default(0)
+  badgeLevel                String         @default("BRONZE_EXPLORER") // BRONZE_EXPLORER, SILVER_ADVENTURER, GOLD_MOUNTAIN_WARRIOR, SUMMIT_LEGEND
+  
+  // Verification & Account status
+  emailVerified             Boolean        @default(false)
+  emailVerificationToken    String?
+  emailVerificationExpires DateTime?
+  resetTokenHash            String?
+  resetTokenExpiry          DateTime?
+  isActive                  Boolean        @default(true)
+  failedLoginAttempts       Int            @default(0)
+  lockoutUntil              DateTime?
+
+  // Extended Profile
+  bloodGroup                String?
+  allergies                 String?
+  medicalNotes              String?
+  emergencyContact          String?
+  emergencyPhone            String?
+  emergencyRelationship     String?
+  dateOfBirth               DateTime?
+  gender                    String?
+  address                   String?
+  trekExperience            String?        @default("Beginner") // Beginner, Intermediate, Advanced
+  fitnessLevel              String?        @default("Average")  // Poor, Average, Good, Excellent
+
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  bookings                  Booking[]
+  orders                    Order[]
+  reviews                   Review[]
+  blogs                     Blog[]
+  memories                  Memory[]
+  likes                     MemoryLike[]
+  comments                  MemoryComment[]
+  eventLeaders              EventLeader[]
+  auditLogs                 AuditLog[]
+  notifications             Notification[]
+  sessions                  Session[]
 }
 
 // Event Types: TREK, CAMPING, NIGHT_TREK, CYCLING, BIKE_RIDE, PHOTOGRAPHY_WALK, RIVER_CROSSING, FORT_TREK, CORPORATE_EVENT
@@ -389,4 +412,15 @@ model TrekPolicy {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   events                Event[]
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  userId     String
+  tokenHash  String   @unique
+  deviceInfo String?
+  ipAddress  String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

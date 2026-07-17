@@ -185,6 +185,103 @@ export default function AdminDashboardPage() {
   const [orgLocation, setOrgLocation] = useState('Kopargaon, Maharashtra');
   const [settingsSuccess, setSettingsSuccess] = useState('');
 
+  // User Management & Audit Logs states
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [loadingAdminUsers, setLoadingAdminUsers] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
+  const [selectedUserSessions, setSelectedUserSessions] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserName, setSelectedUserName] = useState('');
+  const [showSessionsModal, setShowSessionsModal] = useState(false);
+
+  const fetchAdminUsers = async () => {
+    setLoadingAdminUsers(true);
+    try {
+      const data = await api.admin.getUsers(userSearch);
+      setAdminUsers(data);
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+    } finally {
+      setLoadingAdminUsers(false);
+    }
+  };
+
+  const fetchAuditLogs = async () => {
+    setLoadingAuditLogs(true);
+    try {
+      const data = await api.admin.getAuditLogs();
+      setAuditLogs(data);
+    } catch (err) {
+      console.error('Failed to fetch audit logs:', err);
+    } finally {
+      setLoadingAuditLogs(false);
+    }
+  };
+
+  const handleToggleUserStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      const res = await api.admin.toggleUserStatus(id, !currentStatus);
+      alert(res.message);
+      fetchAdminUsers();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update user status.');
+    }
+  };
+
+  const handleVerifyUserEmail = async (id: string) => {
+    try {
+      const res = await api.admin.verifyUserEmail(id);
+      alert(res.message);
+      fetchAdminUsers();
+    } catch (err: any) {
+      alert(err.message || 'Failed to verify user email.');
+    }
+  };
+
+  const handleAdminResetPassword = async (id: string) => {
+    try {
+      const res = await api.admin.resetUserPassword(id);
+      alert(res.message);
+    } catch (err: any) {
+      alert(err.message || 'Failed to trigger password reset.');
+    }
+  };
+
+  const handleManageSessions = async (userId: string, userName: string) => {
+    setSelectedUserId(userId);
+    setSelectedUserName(userName);
+    setShowSessionsModal(true);
+    setSelectedUserSessions([]);
+    try {
+      const data = await api.admin.getUserSessions(userId);
+      setSelectedUserSessions(data);
+    } catch (err) {
+      console.error('Failed to load user sessions:', err);
+    }
+  };
+
+  const handleRevokeUserSession = async (sessionId: string) => {
+    if (!confirm('Are you sure you want to revoke this session?')) return;
+    try {
+      await api.admin.revokeUserSession(sessionId);
+      if (selectedUserId) {
+        const data = await api.admin.getUserSessions(selectedUserId);
+        setSelectedUserSessions(data);
+      }
+    } catch (err) {
+      console.error('Failed to revoke session:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchAdminUsers();
+      fetchAuditLogs();
+    }
+  }, [activeTab, userSearch]);
+
   // Role Gate check
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -621,6 +718,16 @@ export default function AdminDashboardPage() {
             >
               <Users className="h-4 w-4" />
               Manage Bookings
+            </button>
+
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`w-full flex items-center gap-2 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-bold tracking-wider transition-colors ${
+                activeTab === 'users' ? 'bg-forest-green text-white' : 'text-gray-400 hover:bg-gray-50'
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              User & Sessions Control
             </button>
 
             <button
@@ -1479,6 +1586,215 @@ export default function AdminDashboardPage() {
                     Save Settings
                   </button>
                 </form>
+              </div>
+            )}
+
+            {/* User Profiles & Sessions Management Tab */}
+            {activeTab === 'users' && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                {/* Users List Card */}
+                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-50 pb-3">
+                    <h3 className="text-base font-bold text-forest-green font-display">User Accounts Management</h3>
+                    
+                    {/* User Search Bar */}
+                    <div className="relative w-full sm:w-72">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search name, email, phone..."
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-forest-green"
+                      />
+                    </div>
+                  </div>
+
+                  {loadingAdminUsers ? (
+                    <div className="flex justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-600" />
+                    </div>
+                  ) : adminUsers.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-8">No registered user accounts found.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                            <th className="pb-3 pl-2">User Details</th>
+                            <th className="pb-3">Role</th>
+                            <th className="pb-3">Verification</th>
+                            <th className="pb-3">Account Status</th>
+                            <th className="pb-3 text-right pr-2">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {adminUsers.map((u) => (
+                            <tr key={u.id} className="hover:bg-gray-50/50">
+                              <td className="py-3.5 pl-2 flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-full bg-forest-green/10 flex items-center justify-center font-bold text-forest-green text-xs overflow-hidden">
+                                  {u.avatarUrl ? <img src={u.avatarUrl} alt="" className="h-full w-full object-cover" /> : u.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-forest-green">{u.name}</p>
+                                  <p className="text-[10px] text-gray-400">{u.email} | {u.phone || 'No phone'}</p>
+                                </div>
+                              </td>
+                              <td className="py-3.5">
+                                <span className="bg-gray-100 text-gray-700 font-extrabold text-[9px] px-2 py-0.5 rounded">
+                                  {u.role}
+                                </span>
+                              </td>
+                              <td className="py-3.5">
+                                {u.emailVerified ? (
+                                  <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
+                                    Verified
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleVerifyUserEmail(u.id)}
+                                    className="text-[9px] font-extrabold text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded border border-red-150 transition-colors uppercase tracking-wider"
+                                  >
+                                    Verify Manually
+                                  </button>
+                                )}
+                              </td>
+                              <td className="py-3.5">
+                                <button
+                                  onClick={() => handleToggleUserStatus(u.id, u.isActive)}
+                                  className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border transition-all ${
+                                    u.isActive 
+                                      ? 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200' 
+                                      : 'text-red-600 bg-red-50 border-red-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200'
+                                  }`}
+                                >
+                                  {u.isActive ? 'Active (Suspend)' : 'Suspended (Activate)'}
+                                </button>
+                              </td>
+                              <td className="py-3.5 text-right pr-2 space-x-2">
+                                <button
+                                  onClick={() => handleManageSessions(u.id, u.name)}
+                                  className="text-gray-600 hover:text-orange-600 border border-gray-200 hover:border-orange-200 px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-white shadow-sm transition-all"
+                                >
+                                  Sessions
+                                </button>
+                                <button
+                                  onClick={() => handleAdminResetPassword(u.id)}
+                                  className="text-gray-600 hover:text-orange-600 border border-gray-200 hover:border-orange-200 px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-white shadow-sm transition-all"
+                                >
+                                  Reset Pass
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Audit Logs Console Card */}
+                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
+                  <h3 className="text-base font-bold text-forest-green font-display border-b border-gray-50 pb-3 flex items-center gap-1.5">
+                    <ShieldAlert className="h-5 w-5 text-orange-500" />
+                    Security & Authentication Audit Logs
+                  </h3>
+
+                  {loadingAuditLogs ? (
+                    <div className="flex justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-600" />
+                    </div>
+                  ) : auditLogs.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-8">No security audit logs recorded yet.</p>
+                  ) : (
+                    <div className="overflow-x-auto max-h-[400px] overflow-y-auto border border-gray-100 rounded-2xl">
+                      <table className="w-full text-left border-collapse text-[11px]">
+                        <thead>
+                          <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider text-[9px] sticky top-0 z-10">
+                            <th className="py-2.5 pl-3">Timestamp</th>
+                            <th className="py-2.5">Action</th>
+                            <th className="py-2.5">User Context</th>
+                            <th className="py-2.5">Activity Details</th>
+                            <th className="py-2.5 pr-3 text-right">IP Address</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 font-mono">
+                          {auditLogs.map((log) => (
+                            <tr key={log.id} className="hover:bg-gray-50/50">
+                              <td className="py-2.5 pl-3 text-gray-400">
+                                {new Date(log.createdAt).toLocaleString()}
+                              </td>
+                              <td className="py-2.5">
+                                <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${
+                                  log.action.includes('FAIL') || log.action.includes('SUSP')
+                                    ? 'bg-red-50 text-red-700' 
+                                    : log.action.includes('SUCCESS') || log.action.includes('VERIFY') || log.action.includes('REGIS')
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-blue-50 text-blue-700'
+                                }`}>
+                                  {log.action}
+                                </span>
+                              </td>
+                              <td className="py-2.5 text-forest-green font-semibold">
+                                {log.user ? `${log.user.name} (${log.user.role})` : 'Anonymous'}
+                              </td>
+                              <td className="py-2.5 text-gray-600 font-sans max-w-xs truncate" title={log.details}>
+                                {log.details}
+                              </td>
+                              <td className="py-2.5 pr-3 text-right text-gray-400">
+                                {log.ipAddress || 'unknown'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* User Sessions Revocation Modal */}
+            {showSessionsModal && (
+              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-center items-center p-4 animate-in fade-in duration-200">
+                <div className="bg-white rounded-3xl max-w-lg w-full border border-gray-100 shadow-2xl p-6 space-y-6">
+                  <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                    <div>
+                      <h3 className="text-base font-bold text-forest-green font-display">Active Sessions: {selectedUserName}</h3>
+                      <p className="text-[10px] text-gray-400 mt-0.5">Revoke active sessions to immediately force logouts on user devices.</p>
+                    </div>
+                    <button 
+                      onClick={() => setShowSessionsModal(false)}
+                      className="text-gray-400 hover:text-gray-600 font-bold text-xs uppercase"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {selectedUserSessions.length === 0 ? (
+                      <p className="text-xs text-gray-400 text-center py-6">No active sessions found for this user.</p>
+                    ) : (
+                      selectedUserSessions.map((s) => (
+                        <div key={s.id} className="bg-gray-50 p-3.5 rounded-xl border border-gray-150 flex items-center justify-between gap-3 text-xs">
+                          <div>
+                            <p className="font-bold text-forest-green max-w-[280px] truncate">{s.deviceInfo}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">
+                              IP: {s.ipAddress} | Logged: {new Date(s.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleRevokeUserSession(s.id)}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            title="Revoke device session"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 

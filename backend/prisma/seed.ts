@@ -38,6 +38,7 @@ async function main() {
       email: 'atharvadhawale80@gmail.com',
       name: 'Atharva Dhawale',
       passwordHash: adminPassword,
+      phone: '+919322340365',
       role: 'SUPER_ADMIN',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop',
       referralCode: 'ATHARVA100',
@@ -45,7 +46,9 @@ async function main() {
       badgeLevel: 'SUMMIT_LEGEND',
       bloodGroup: 'O+',
       allergies: 'None',
-      medicalNotes: 'Certified Trek Leader'
+      medicalNotes: 'Certified Trek Leader',
+      emailVerified: true,
+      isActive: true
     }
   });
 
@@ -56,6 +59,7 @@ async function main() {
       email: 'leader@treckwari.com',
       name: 'Rohan Patil',
       passwordHash: adminPassword,
+      phone: '+919876543210',
       role: 'TREK_LEADER',
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=256&auto=format&fit=crop',
       referralCode: 'ROHAN50',
@@ -63,7 +67,9 @@ async function main() {
       badgeLevel: 'GOLD_MOUNTAIN_WARRIOR',
       bloodGroup: 'A+',
       allergies: 'Dust allergy',
-      medicalNotes: 'First Aid Certified'
+      medicalNotes: 'First Aid Certified',
+      emailVerified: true,
+      isActive: true
     }
   });
 
@@ -74,6 +80,7 @@ async function main() {
       email: 'user@treckwari.com',
       name: 'Amit Shinde',
       passwordHash: userPassword,
+      phone: '+919111222333',
       role: 'USER',
       avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=256&auto=format&fit=crop',
       referralCode: 'AMIT10',
@@ -82,7 +89,9 @@ async function main() {
       badgeLevel: 'BRONZE_EXPLORER',
       bloodGroup: 'B+',
       allergies: 'None',
-      medicalNotes: 'No major illnesses'
+      medicalNotes: 'No major illnesses',
+      emailVerified: true,
+      isActive: true
     }
   });
 

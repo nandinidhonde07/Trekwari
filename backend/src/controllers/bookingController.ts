@@ -47,6 +47,12 @@ export async function createBooking(req: AuthRequest, res: Response) {
   }
 
   try {
+    // Verify that the user's email address is verified before booking is permitted
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user || !user.emailVerified) {
+      return res.status(403).json({ error: 'Please verify your email address to book a trek. You can trigger a verification link in your profile settings.' });
+    }
+
     const event = await prisma.event.findUnique({ where: { id: eventId } });
     if (!event) {
       return res.status(404).json({ error: 'Trekking event not found.' });

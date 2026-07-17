@@ -17,7 +17,22 @@ export class APIError extends Error {
 /**
  * Base fetch function that handles headers, tokens, and errors.
  */
-async function apiFetch(path: string, options: RequestInit = {}) {
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+function subscribeTokenRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(token: string) {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+}
+
+/**
+ * Base fetch function that handles headers, tokens, and errors.
+ */
+async function apiFetch(path: string, options: RequestInit = {}): Promise<any> {
   const url = `${API_URL}${path}`;
   const headers = new Headers(options.headers || {});
 
@@ -29,30 +44,101 @@ async function apiFetch(path: string, options: RequestInit = {}) {
     }
   }
 
+  // Include credentials for HTTP-only cookies
+  options.credentials = 'include';
+
   // Set Content-Type to JSON if sending body and not already set
   if (options.body && !headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
 
-  let responseData;
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
-    responseData = await response.json();
-  } else {
-    responseData = await response.text();
+    // Intercept 401 Unauthorized errors and attempt a silent token refresh
+    if (
+      response.status === 401 &&
+      !path.includes('/auth/refresh') &&
+      !path.includes('/auth/login') &&
+      !path.includes('/auth/register')
+    ) {
+      if (typeof window !== 'undefined') {
+        const hasToken = !!localStorage.getItem('tw_token');
+        if (hasToken) {
+          if (!isRefreshing) {
+            isRefreshing = true;
+            fetch(`${API_URL}/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken: localStorage.getItem('tw_refresh') || undefined }),
+              credentials: 'include'
+            })
+              .then((res) => {
+                if (!res.ok) throw new Error('Session refresh failed');
+                return res.json();
+              })
+              .then((data) => {
+                isRefreshing = false;
+                localStorage.setItem('tw_token', data.token);
+                if (data.refreshToken) {
+                  localStorage.setItem('tw_refresh', data.refreshToken);
+                }
+                onRefreshed(data.token);
+              })
+              .catch((err) => {
+                isRefreshing = false;
+                localStorage.removeItem('tw_token');
+                localStorage.removeItem('tw_refresh');
+                window.dispatchEvent(new Event('tw-logout'));
+                refreshSubscribers = [];
+              });
+          }
+
+          return new Promise((resolve, reject) => {
+            subscribeTokenRefresh((newToken) => {
+              headers.set('Authorization', `Bearer ${newToken}`);
+              fetch(url, { ...options, headers })
+                .then((res) => {
+                  const contentType = res.headers.get('content-type');
+                  if (contentType && contentType.includes('application/json')) {
+                    return res.json();
+                  }
+                  return res.text();
+                })
+                .then((data) => {
+                  if (data && (data as any).error) {
+                    reject(new APIError((data as any).error, 401, data));
+                  } else {
+                    resolve(data);
+                  }
+                })
+                .catch((err) => reject(err));
+            });
+          });
+        }
+      }
+    }
+
+    let responseData;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      responseData = await response.json();
+    } else {
+      responseData = await response.text();
+    }
+
+    if (!response.ok) {
+      const errorMsg = responseData?.error || responseData || 'A network error occurred.';
+      throw new APIError(errorMsg, response.status, responseData);
+    }
+
+    return responseData;
+  } catch (error) {
+    throw error;
   }
-
-  if (!response.ok) {
-    const errorMsg = responseData?.error || responseData || 'A network error occurred.';
-    throw new APIError(errorMsg, response.status, responseData);
-  }
-
-  return responseData;
 }
 
 export const api = {
@@ -62,7 +148,17 @@ export const api = {
     register: (details: any) => apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(details) }),
     getProfile: () => apiFetch('/auth/profile'),
     updateProfile: (profile: any) => apiFetch('/auth/profile', { method: 'PUT', body: JSON.stringify(profile) }),
-    forgotPassword: (email: string) => apiFetch('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) })
+    forgotPassword: (email: string) => apiFetch('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+    googleLogin: (credential: string, rememberMe: boolean = false) => apiFetch('/auth/google', { method: 'POST', body: JSON.stringify({ credential, rememberMe }) }),
+    refresh: (refreshToken?: string) => apiFetch('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
+    verifyEmail: (token: string) => apiFetch(`/auth/verify-email?token=${token}`),
+    resendVerification: (email: string) => apiFetch('/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) }),
+    resetPassword: (token: string, newPassword: string) => apiFetch('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password: newPassword }) }),
+    uploadAvatar: (avatarBase64: string) => apiFetch('/auth/profile/avatar', { method: 'POST', body: JSON.stringify({ avatar: avatarBase64 }) }),
+    getSessions: () => apiFetch('/auth/sessions'),
+    revokeSession: (id: string) => apiFetch(`/auth/sessions/${id}`, { method: 'DELETE' }),
+    logout: (refreshToken?: string) => apiFetch('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
+    logoutAll: () => apiFetch('/auth/logout-all', { method: 'POST' })
   },
 
   // Organization Settings
@@ -164,5 +260,22 @@ export const api = {
   // Admin Dashboard Statistics
   dashboard: {
     getStats: () => apiFetch('/dashboard/stats')
+  },
+
+  // Admin User & Session Controls
+  admin: {
+    getUsers: (search?: string) => apiFetch(`/admin/users${search ? `?search=${search}` : ''}`),
+    toggleUserStatus: (id: string, isActive: boolean) => apiFetch(`/admin/users/${id}/status`, { method: 'POST', body: JSON.stringify({ isActive }) }),
+    verifyUserEmail: (id: string) => apiFetch(`/admin/users/${id}/verify`, { method: 'POST' }),
+    resetUserPassword: (id: string) => apiFetch(`/admin/users/${id}/reset-password`, { method: 'POST' }),
+    getUserSessions: (id: string) => apiFetch(`/admin/users/${id}/sessions`),
+    revokeUserSession: (sessionId: string) => apiFetch(`/admin/sessions/${sessionId}`, { method: 'DELETE' }),
+    getAuditLogs: (limit?: number, offset?: number) => {
+      const query = new URLSearchParams({
+        ...(limit && { limit: String(limit) }),
+        ...(offset && { offset: String(offset) })
+      }).toString();
+      return apiFetch(`/admin/audit-logs${query ? `?${query}` : ''}`);
+    }
   }
 };

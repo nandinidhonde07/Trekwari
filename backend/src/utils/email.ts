@@ -184,3 +184,21 @@ export function getAdminNotificationTemplate(subject: string, message: string): 
     </div>
   `;
 }
+
+export function getEmailVerificationTemplate(userName: string, verifyLink: string): string {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
+      <h2 style="color: #ea580c; border-bottom: 2px solid #ea580c; padding-bottom: 8px;">Verify Your Email Address</h2>
+      <p>Hello <strong>${userName}</strong>,</p>
+      <p>Welcome to TrekWari! Please verify your email address to activate your account and begin booking your Sahyadri expeditions:</p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${verifyLink}" style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Verify Email</a>
+      </div>
+      <p>This verification link is active for <strong>24 hours</strong>. If the link does not work, copy and paste this URL into your browser:</p>
+      <p style="word-break: break-all; color: #6b7280; font-size: 11px;">${verifyLink}</p>
+      <p>If you did not sign up for a TrekWari account, please ignore this email.</p>
+      <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+      <p style="font-size: 11px; color: #9ca3af; text-align: center;">TrekWari Adventures. Kopargaon, Maharashtra, India.</p>
+    </div>
+  `;
+}

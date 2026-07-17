@@ -4,11 +4,25 @@
 
 
 @theme {
-  --color-forest-green: #14532D;
-  --color-dark-green: #166534;
+  --color-forest-green: #111827; /* Dark Slate 900 for modern headings */
+  --color-dark-green: #1f2937; /* Dark Slate 800 */
   --color-mountain-gray: #374151;
   --color-earth-brown: #7C4A21;
-  --color-sunrise-orange: #F59E0B;
+  --color-sunrise-orange: #ea580c; /* Orange 600 */
+  
+  /* Map emerald utilities to corresponding warm orange gradients and shadows */
+  --color-emerald-50: #fff7ed;   /* orange-50 */
+  --color-emerald-100: #ffedd5;  /* orange-100 */
+  --color-emerald-200: #fed7aa;  /* orange-200 */
+  --color-emerald-300: #fdba74;  /* orange-300 */
+  --color-emerald-400: #fb923c;  /* orange-400 */
+  --color-emerald-55: #f97316;   /* orange-500 */
+  --color-emerald-600: #ea580c;  /* orange-600 */
+  --color-emerald-700: #c2410c;  /* orange-700 */
+  --color-emerald-800: #9a3412;  /* orange-800 */
+  --color-emerald-900: #7c2d12;  /* orange-900 */
+  --color-emerald-950: #431407;  /* orange-950 */
+  
   --font-sans: 'Inter', sans-serif;
   --font-display: 'Poppins', sans-serif;
 }
@@ -17,7 +31,7 @@
 
   body {
     font-family: var(--font-sans);
-    background-color: #F9FAFB;
+    background-color: #ffffff; /* Clean white background */
     color: #111827;
     scroll-behavior: smooth;
     overflow-x: hidden;
@@ -83,7 +97,7 @@
 }
 
 .text-gradient-forest {
-  background: linear-gradient(135deg, #10B981 0%, #064E3B 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }

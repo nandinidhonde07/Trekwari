@@ -69,8 +69,8 @@ export default function Hero() {
         backgroundImage: "url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1600')"
       }}
     >
-      {/* Misty soft white nature overlay */}
-      <div className="absolute inset-0 bg-white/92 backdrop-blur-[1px]" />
+      {/* Semi-transparent white nature overlay for clear visibility */}
+      <div className="absolute inset-0 bg-white/60" />
       
       {/* 6 Reasons Header */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">

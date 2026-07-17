@@ -1,0 +1,21 @@
+{
+  "name": "treckwari-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "install:all": "npm install && npm install --workspace=frontend && npm install --workspace=backend",
+    "dev:backend": "npm.cmd run dev --workspace=backend",
+    "dev:frontend": "npm.cmd run dev --workspace=frontend",
+    "dev": "concurrently \"npm.cmd run dev:backend\" \"npm.cmd run dev:frontend\"",
+    "build:backend": "npm.cmd run build --workspace=backend",
+    "build:frontend": "npm.cmd run build --workspace=frontend",
+    "build": "npm.cmd run build:backend && npm.cmd run build:frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

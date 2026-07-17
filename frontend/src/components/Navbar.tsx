@@ -118,18 +118,14 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-        isNavbarTransparent 
-          ? 'bg-transparent py-4 text-white' 
-          : 'bg-forest-green py-3 text-white shadow-lg'
-      }`}
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 bg-white py-3 text-gray-800 border-b border-gray-100 shadow-sm`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           
           {/* Brand Logo */}
           <Link href="/" className="flex items-center">
-            <Logo light={true} />
+            <Logo light={false} />
           </Link>
 
           {/* Desktop Nav Links */}
@@ -140,8 +136,8 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   href={link.path}
-                  className={`text-sm font-medium tracking-wide transition-colors duration-300 hover:text-sunrise-orange ${
-                    active ? 'text-sunrise-orange border-b-2 border-sunrise-orange pb-1' : ''
+                  className={`text-sm font-semibold tracking-wide transition-colors duration-305 hover:text-orange-600 ${
+                    active ? 'text-orange-600 border-b-2 border-orange-600 pb-1' : 'text-gray-600'
                   }`}
                 >
                   {link.name}
@@ -156,7 +152,7 @@ export default function Navbar() {
             {/* Quick Instagram / Contact */}
             <a 
               href={`tel:${settings.phone}`}
-              className="text-xs text-emerald-100 hover:text-white transition-colors"
+              className="text-xs text-gray-500 hover:text-orange-600 transition-colors"
             >
               📞 {settings.phone}
             </a>
@@ -166,11 +162,11 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setNotiDropdownOpen(!notiDropdownOpen)}
-                  className="relative p-1.5 rounded-full hover:bg-emerald-800 transition-colors focus:outline-none"
+                  className="relative p-1.5 rounded-full hover:bg-gray-100 transition-colors focus:outline-none"
                 >
-                  <Bell className="h-5 w-5 text-white" />
+                  <Bell className="h-5 w-5 text-gray-600" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-sunrise-orange text-forest-green font-extrabold text-[8px] h-4 w-4 rounded-full flex items-center justify-center border border-forest-green shadow-sm animate-pulse">
+                    <span className="absolute -top-1 -right-1 bg-orange-600 text-white font-extrabold text-[8px] h-4 w-4 rounded-full flex items-center justify-center border border-white shadow-sm animate-pulse">
                       {unreadCount}
                     </span>
                   )}
@@ -179,9 +175,9 @@ export default function Navbar() {
                 {notiDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-72 bg-white text-gray-800 rounded-lg shadow-xl py-2 border border-gray-100 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                      <span className="text-xs font-bold text-forest-green">Notifications</span>
+                      <span className="text-xs font-bold text-orange-600">Notifications</span>
                       {unreadCount > 0 && (
-                        <button onClick={handleMarkAllNotiRead} className="text-[10px] text-sunrise-orange hover:underline font-bold">
+                        <button onClick={handleMarkAllNotiRead} className="text-[10px] text-orange-500 hover:underline font-bold">
                           Mark all as read
                         </button>
                       )}
@@ -195,10 +191,10 @@ export default function Navbar() {
                             key={n.id} 
                             onClick={() => handleMarkNotiRead(n.id)}
                             className={`px-4 py-3 border-b border-gray-50 text-[11px] leading-relaxed cursor-pointer transition-colors hover:bg-gray-50 ${
-                              !n.isRead ? 'bg-emerald-50/30 border-l-2 border-l-sunrise-orange' : ''
+                              !n.isRead ? 'bg-orange-50/30 border-l-2 border-l-orange-550' : ''
                             }`}
                           >
-                            <p className="font-bold text-forest-green">{n.title}</p>
+                            <p className="font-bold text-orange-600">{n.title}</p>
                             <p className="text-gray-500 mt-0.5">{n.message}</p>
                             <p className="text-[8px] text-gray-400 mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
                           </div>
@@ -215,7 +211,7 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center space-x-2 bg-emerald-800/50 hover:bg-emerald-800 border border-emerald-700/50 rounded-full px-3 py-1.5 transition-all focus:outline-none"
+                  className="flex items-center space-x-2 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-full px-3 py-1.5 transition-all focus:outline-none text-gray-800"
                 >
                   {user.avatarUrl ? (
                     <img 
@@ -234,15 +230,15 @@ export default function Navbar() {
                   <div className="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-xl py-2 border border-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="px-4 py-2 border-b border-gray-100">
                       <p className="text-xs text-gray-400 font-medium">Logged in as</p>
-                      <p className="text-sm font-bold truncate text-forest-green">{user.name}</p>
+                      <p className="text-sm font-bold truncate text-orange-600">{user.name}</p>
                     </div>
 
                     <Link
                       href="/dashboard"
                       onClick={() => setUserDropdownOpen(false)}
-                      className="flex items-center px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
+                      className="flex items-center px-4 py-2 text-sm hover:bg-gray-55 transition-colors"
                     >
-                      <Compass className="h-4 w-4 mr-2 text-forest-green" />
+                      <Compass className="h-4 w-4 mr-2 text-orange-600" />
                       My Dashboard
                     </Link>
 
@@ -253,7 +249,7 @@ export default function Navbar() {
                         onClick={() => setUserDropdownOpen(false)}
                         className="flex items-center px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
                       >
-                        <Calendar className="h-4 w-4 mr-2 text-forest-green" />
+                        <Calendar className="h-4 w-4 mr-2 text-orange-600" />
                         Trek Leader Portal
                       </Link>
                     )}
@@ -265,7 +261,7 @@ export default function Navbar() {
                         onClick={() => setUserDropdownOpen(false)}
                         className="flex items-center px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
                       >
-                        <Shield className="h-4 w-4 mr-2 text-forest-green" />
+                        <Shield className="h-4 w-4 mr-2 text-orange-600" />
                         Admin Dashboard
                       </Link>
                     )}
@@ -289,15 +285,15 @@ export default function Navbar() {
               <div className="flex items-center space-x-3">
                 <Link
                   href="/login"
-                  className="text-sm font-medium hover:text-sunrise-orange transition-colors"
+                  className="text-sm font-semibold text-gray-600 hover:text-orange-600 transition-colors"
                 >
                   Log In
                 </Link>
                 <Link
                   href="/signup"
-                  className="bg-sunrise-orange text-forest-green text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-full hover:bg-yellow-500 hover:scale-105 transition-all shadow-md"
+                  className="bg-orange-600 text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-full hover:bg-orange-500 hover:scale-105 transition-all shadow-md"
                 >
-                  Book Now
+                  Book a trek
                 </Link>
               </div>
             )}
@@ -307,7 +303,7 @@ export default function Navbar() {
           <div className="flex md:hidden items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-white hover:text-sunrise-orange focus:outline-none transition-colors"
+              className="text-gray-600 hover:text-orange-600 focus:outline-none transition-colors"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -318,7 +314,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Panel */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-forest-green border-t border-emerald-800 animate-in fade-in duration-200">
+        <div className="md:hidden bg-white border-t border-gray-100 animate-in fade-in duration-200 shadow-md">
           <div className="px-2 pt-2 pb-4 space-y-1 sm:px-3">
             {navLinks.map((link) => {
               const active = pathname === link.path;
@@ -327,10 +323,10 @@ export default function Navbar() {
                   key={link.name}
                   href={link.path}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                  className={`block px-3 py-2 rounded-md text-base font-semibold transition-colors ${
                     active 
-                      ? 'bg-emerald-900 text-sunrise-orange' 
-                      : 'hover:bg-emerald-800'
+                      ? 'bg-orange-50 text-orange-600' 
+                      : 'text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   {link.name}
@@ -338,14 +334,14 @@ export default function Navbar() {
               );
             })}
             
-            <hr className="border-emerald-800 my-2" />
+            <hr className="border-gray-100 my-2" />
 
             {isAuthenticated && user ? (
               <>
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 text-base font-medium text-emerald-100 hover:bg-emerald-800"
+                  className="block px-3 py-2 text-base font-semibold text-gray-700 hover:bg-gray-50"
                 >
                   My Dashboard
                 </Link>
@@ -353,7 +349,7 @@ export default function Navbar() {
                   <Link
                     href="/leader"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 text-base font-medium text-emerald-100 hover:bg-emerald-800"
+                    className="block px-3 py-2 text-base font-semibold text-gray-700 hover:bg-gray-50"
                   >
                     Trek Leader Portal
                   </Link>
@@ -362,7 +358,7 @@ export default function Navbar() {
                   <Link
                     href="/admin"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 text-base font-medium text-emerald-100 hover:bg-emerald-800"
+                    className="block px-3 py-2 text-base font-semibold text-gray-700 hover:bg-gray-50"
                   >
                     Admin Panel
                   </Link>
@@ -372,7 +368,7 @@ export default function Navbar() {
                     logout();
                     setMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left px-3 py-2 text-base font-medium text-red-400 hover:bg-red-950/20"
+                  className="block w-full text-left px-3 py-2 text-base font-semibold text-red-650 hover:bg-red-50"
                 >
                   Sign Out
                 </button>
@@ -382,14 +378,14 @@ export default function Navbar() {
                 <Link
                   href="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-center px-4 py-2 border border-emerald-700 rounded-full text-sm font-semibold hover:bg-emerald-800"
+                  className="text-center px-4 py-2 border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50"
                 >
                   Log In
                 </Link>
                 <Link
                   href="/signup"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-center bg-sunrise-orange text-forest-green px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wider"
+                  className="text-center bg-orange-600 text-white px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wider"
                 >
                   Sign Up
                 </Link>

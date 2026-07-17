@@ -1,12 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { Award, Shield, Compass, MapPin, Users, IndianRupee, Star } from 'lucide-react';
 
-// Counter component for animation
-function Counter({ value, suffix = '', duration = 1.5 }: { value: number; suffix?: string; duration?: number }) {
+function Counter({ value, suffix = '', duration = 1.2 }: { value: number; suffix?: string; duration?: number }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -15,7 +12,7 @@ function Counter({ value, suffix = '', duration = 1.5 }: { value: number; suffix
     if (start === end) return;
 
     const totalMiliseconds = duration * 1000;
-    const incrementTime = Math.max(Math.floor(totalMiliseconds / end), 20);
+    const incrementTime = Math.max(Math.floor(totalMiliseconds / end), 25);
 
     const timer = setInterval(() => {
       start += 1;
@@ -32,91 +29,126 @@ function Counter({ value, suffix = '', duration = 1.5 }: { value: number; suffix
 }
 
 export default function Hero() {
-  const stats = [
-    { value: 2, suffix: '+', label: 'Completed Treks' },
-    { value: 200, suffix: '+', label: 'Participants' },
-    { value: 2, suffix: '', label: 'Destinations' },
-    { value: 100, suffix: '%', label: 'Safety Record' }
+  const reasons = [
+    {
+      icon: <Award className="h-5 w-5 text-white" />,
+      title: 'Experienced Trek Leaders',
+      desc: 'Certified, first-aid trained leaders with 100+ treks each.'
+    },
+    {
+      icon: <Shield className="h-5 w-5 text-white" />,
+      title: 'Safety First',
+      desc: 'Route recce, weather monitoring, and full safety kit on every trek.'
+    },
+    {
+      icon: <Compass className="h-5 w-5 text-white" />,
+      title: 'Comfortable Travel',
+      desc: 'Verified transport, hygienic homestays, hot meals on trail.'
+    },
+    {
+      icon: <MapPin className="h-5 w-5 text-white" />,
+      title: 'Verified Routes',
+      desc: 'Every route inspected in-season. No surprises. No guesswork.'
+    },
+    {
+      icon: <IndianRupee className="h-5 w-5 text-white" />,
+      title: 'Affordable Pricing',
+      desc: 'Transparent pricing. No hidden fees. Group discounts on 6+.'
+    },
+    {
+      icon: <Users className="h-5 w-5 text-white" />,
+      title: 'Amazing Community',
+      desc: 'Join 500+ trekkers who keep coming back. Life-long friendships.'
+    }
   ];
 
   return (
-    <section className="relative h-screen w-full flex flex-col justify-center items-center overflow-hidden">
-      {/* Background Image with Dark Forest Overlay */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-10000 scale-105"
-        style={{ 
-          backgroundImage: "url('/images/homepage_banner.jpg')",
-        }}
-      />
-      {/* Cinematic Dark Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/45 to-forest-green/90" />
-
-      {/* Parallax Floating Clouds Mock */}
-      <div className="absolute top-20 left-0 w-full h-full pointer-events-none opacity-20">
-        <div className="absolute top-1/4 left-[-10%] w-[50%] h-32 bg-white/10 blur-[90px] rounded-full animate-pulse" />
-        <div className="absolute top-1/2 right-[-10%] w-[60%] h-40 bg-white/10 blur-[100px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
-      </div>
-
-      {/* Hero Content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-4 text-center mt-12">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="space-y-6"
-        >
-          {/* Tag Category Badge */}
-          <span className="inline-block text-xs uppercase tracking-[0.3em] font-bold text-sunrise-orange bg-sunrise-orange/10 border border-sunrise-orange/30 px-4 py-1.5 rounded-full">
-            Not Just A Trek, It's A Waari
+    <section className="bg-white pt-32 pb-0 overflow-hidden font-sans">
+      
+      {/* 6 Reasons Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+        <div className="max-w-3xl space-y-3">
+          <span className="text-xs uppercase tracking-[0.2em] font-extrabold text-orange-600 block">
+            Why TrekWari
           </span>
-
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-tight font-display">
-            Explore Beyond <span className="text-gradient-sunrise">Limits</span>
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight leading-tight">
+            Adventure without <br className="hidden sm:inline" /> the anxiety.
           </h1>
-
-          <p className="text-base sm:text-xl text-emerald-100/90 max-w-2xl mx-auto font-sans leading-relaxed font-light">
-            Adventure begins with every step. Join TreckWari for premium, safety-first trekking expeditions across the Sahyadri mountains of Maharashtra and beyond.
+          <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-xl">
+            Six reasons India's fastest-growing trekking community trusts us with their weekends.
           </p>
-
-          {/* Call-to-Actions */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-            <Link
-              href="/treks"
-              className="bg-sunrise-orange text-forest-green px-8 py-3.5 rounded-full font-bold uppercase tracking-wider hover:bg-yellow-500 hover:scale-105 transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)] text-sm"
+        </div>
+        
+        {/* Reasons Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
+          {reasons.map((reason, idx) => (
+            <div 
+              key={idx}
+              className="p-8 bg-white border border-gray-100 rounded-3xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:scale-[1.01] hover:border-orange-600/20 transition-all duration-300 flex flex-col justify-between"
             >
-              View Upcoming Treks
-            </Link>
-            <Link
-              href="/signup"
-              className="border border-white/40 bg-white/10 hover:bg-white/20 text-white px-8 py-3.5 rounded-full font-bold uppercase tracking-wider transition-all text-sm hover:scale-105"
-            >
-              Join Next Trek
-            </Link>
-          </div>
-        </motion.div>
+              <div>
+                {/* Round Orange Icon Bubble */}
+                <div className="h-10 w-10 rounded-full bg-orange-600 flex items-center justify-center mb-6 shadow-sm shadow-orange-600/10">
+                  {reason.icon}
+                </div>
+                <h3 className="text-base font-bold text-gray-900 mb-2.5">
+                  {reason.title}
+                </h3>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  {reason.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Statistics Overlay Banner */}
-      <div className="absolute bottom-20 left-0 w-full z-10 px-4">
-        <div className="max-w-4xl mx-auto glass-card-dark rounded-2xl p-6 sm:p-8 border border-white/10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-emerald-800/60">
-            {stats.map((stat, idx) => (
-              <div key={idx} className={`pt-4 md:pt-0 ${idx === 0 ? 'pt-0' : ''}`}>
-                <p className="text-3xl sm:text-4xl font-extrabold text-sunrise-orange font-display">
-                  <Counter value={stat.value} suffix={stat.suffix} />
-                </p>
-                <p className="text-xs uppercase tracking-widest text-emerald-100/70 font-semibold mt-1.5">{stat.label}</p>
+      {/* Vibrant Orange Stats Banner Section */}
+      <div className="w-full bg-gradient-to-r from-orange-600 to-orange-500 py-12 px-4 shadow-[0_4px_30px_rgba(249,115,22,0.15)] mt-12">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-white/20">
+            
+            <div className="pt-0">
+              <p className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+                <Counter value={500} suffix="+" />
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-orange-100 font-bold mt-2">
+                Happy Trekkers
+              </p>
+            </div>
+
+            <div className="pt-6 md:pt-0 md:pl-4">
+              <p className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+                <Counter value={50} suffix="+" />
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-orange-100 font-bold mt-2">
+                Treks Completed
+              </p>
+            </div>
+
+            <div className="pt-6 md:pt-0 md:pl-4 flex flex-col items-center justify-center">
+              <div className="flex items-baseline justify-center text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+                <span>4.9</span>
+                <Star className="h-6 w-6 fill-white text-white ml-1 self-center" />
               </div>
-            ))}
+              <p className="text-[10px] uppercase tracking-wider text-orange-100 font-bold mt-2">
+                Average Rating
+              </p>
+            </div>
+
+            <div className="pt-6 md:pt-0 md:pl-4">
+              <p className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+                <Counter value={20} suffix="+" />
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-orange-100 font-bold mt-2">
+                Destinations
+              </p>
+            </div>
+
           </div>
         </div>
       </div>
 
-      {/* Animated Scroll Down Indicator */}
-      <div className="absolute bottom-6 z-10 flex flex-col items-center animate-bounce">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-100/60 font-semibold mb-1">Scroll Explore</span>
-        <ChevronDown className="h-5 w-5 text-sunrise-orange" />
-      </div>
     </section>
   );
 }

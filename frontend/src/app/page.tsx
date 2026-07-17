@@ -3,10 +3,11 @@
 import React from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
-import CompletedTreks from '../components/CompletedTreks';
+import Testimonials from '../components/Testimonials';
 import UpcomingTrips from '../components/UpcomingTrips';
 import AboutFounder from '../components/AboutFounder';
 import SafetySection from '../components/SafetySection';
+import Postcards from '../components/Postcards';
 import FAQAccordion from '../components/FAQAccordion';
 import ContactForm from '../components/ContactForm';
 import Footer from '../components/Footer';
@@ -14,7 +15,7 @@ import WhatsAppWidget from '../components/WhatsAppWidget';
 
 export default function Home() {
   return (
-    <main className="min-h-screen relative bg-gray-50">
+    <main className="min-h-screen relative bg-white">
       {/* Sticky Navigation Bar */}
       <Navbar />
 
@@ -33,11 +34,15 @@ export default function Home() {
       </div>
 
       <div>
-        <CompletedTreks />
+        <Testimonials />
       </div>
 
       <div id="safety">
         <SafetySection />
+      </div>
+
+      <div>
+        <Postcards />
       </div>
 
       <div id="faqs">

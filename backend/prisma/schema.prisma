@@ -143,6 +143,7 @@ model BookingMember {
   name             String
   age              Int
   gender           String
+  phone            String?
   attendanceStatus String           @default("PENDING") // AttendanceStatus values
   booking          Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }

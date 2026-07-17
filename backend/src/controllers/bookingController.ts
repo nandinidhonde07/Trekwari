@@ -145,6 +145,7 @@ export async function createBooking(req: AuthRequest, res: Response) {
             name: m.name,
             age: parseInt(m.age),
             gender: m.gender,
+            phone: m.phone || null,
             attendanceStatus: 'PENDING'
           }))
         }

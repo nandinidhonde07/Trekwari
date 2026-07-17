@@ -70,8 +70,8 @@ export default function TrekDetailsPage() {
   const [emergencyContact, setEmergencyContact] = useState('');
   const [medicalDetails, setMedicalDetails] = useState('');
   const [waiverAccepted, setWaiverAccepted] = useState(false);
-  const [members, setMembers] = useState<Array<{ name: string; age: number; gender: string }>>([
-    { name: '', age: 20, gender: 'Male' }
+  const [members, setMembers] = useState<Array<{ name: string; age: number; gender: string; phone?: string }>>([
+    { name: '', age: 20, gender: 'Male', phone: '' }
   ]);
   const [bookingError, setBookingError] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState<any>(null);
@@ -106,7 +106,7 @@ export default function TrekDetailsPage() {
         setTrek(data);
         // Pre-fill primary member name if user logged in
         if (user) {
-          setMembers([{ name: user.name, age: 20, gender: 'Male' }]);
+          setMembers([{ name: user.name, age: 20, gender: 'Male', phone: '' }]);
         }
       } catch (err) {
         console.error('Failed to load trek details:', err);
@@ -169,7 +169,7 @@ export default function TrekDetailsPage() {
     const newMembers = [...members];
     if (count > newMembers.length) {
       for (let i = newMembers.length; i < count; i++) {
-        newMembers.push({ name: '', age: 20, gender: 'Male' });
+        newMembers.push({ name: '', age: 20, gender: 'Male', phone: '' });
       }
     } else {
       newMembers.length = count;
@@ -192,28 +192,35 @@ export default function TrekDetailsPage() {
       return;
     }
 
-    // Validation
-    const emptyMember = members.some(m => !m.name.trim());
-    if (emptyMember) {
-      setBookingError('Please fill out the names of all participants.');
-      return;
-    }
-
-    if (!emergencyContact.trim()) {
-      setBookingError('Please supply an emergency contact number.');
-      return;
-    }
-
     if (checkoutStep === 1) {
       setCheckoutStep(2);
       return;
     }
+
     if (checkoutStep === 2) {
+      // Validate participant details
+      const emptyMember = members.some(m => !m.name.trim());
+      if (emptyMember) {
+        setBookingError('Please fill out the names of all participants.');
+        return;
+      }
+      const invalidAge = members.some(m => !m.age || m.age <= 0);
+      if (invalidAge) {
+        setBookingError('Please enter a valid age for all participants.');
+        return;
+      }
+      const emptyPhone = members.some(m => !m.phone || !m.phone.trim());
+      if (emptyPhone) {
+        setBookingError('Please fill out the phone numbers of all participants.');
+        return;
+      }
       setCheckoutStep(3);
       return;
     }
+
     if (checkoutStep === 3) {
-      if (!emergencyContact || !emergencyName || !emergencyRelationship) {
+      // Validate emergency details & checkboxes
+      if (!emergencyName.trim() || !emergencyRelationship.trim() || !emergencyContact.trim()) {
         setBookingError('All Emergency Contact details (Name, Phone, Relationship) are mandatory.');
         return;
       }
@@ -901,6 +908,16 @@ export default function TrekDetailsPage() {
                               value={member.name}
                               onChange={(e) => handleMemberChange(idx, 'name', e.target.value)}
                               placeholder="Full Name"
+                              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs bg-white focus:outline-none focus:border-forest-green"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="tel"
+                              required
+                              value={member.phone || ''}
+                              onChange={(e) => handleMemberChange(idx, 'phone', e.target.value)}
+                              placeholder="Phone Number"
                               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs bg-white focus:outline-none focus:border-forest-green"
                             />
                           </div>

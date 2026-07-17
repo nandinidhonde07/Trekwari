@@ -63,10 +63,17 @@ export default function Hero() {
   ];
 
   return (
-    <section className="bg-white pt-32 pb-0 overflow-hidden font-sans">
+    <section 
+      className="relative pt-32 pb-0 overflow-hidden font-sans bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: "url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1600')"
+      }}
+    >
+      {/* Misty soft white nature overlay */}
+      <div className="absolute inset-0 bg-white/92 backdrop-blur-[1px]" />
       
       {/* 6 Reasons Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
         <div className="max-w-3xl space-y-3">
           <span className="text-xs uppercase tracking-[0.2em] font-extrabold text-orange-600 block">
             Why TrekWari
@@ -104,7 +111,7 @@ export default function Hero() {
       </div>
 
       {/* Vibrant Orange Stats Banner Section */}
-      <div className="w-full bg-gradient-to-r from-orange-600 to-orange-500 py-12 px-4 shadow-[0_4px_30px_rgba(249,115,22,0.15)] mt-12">
+      <div className="relative z-10 w-full bg-gradient-to-r from-orange-600 to-orange-500 py-12 px-4 shadow-[0_4px_30px_rgba(249,115,22,0.15)] mt-12">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-white/20">
             

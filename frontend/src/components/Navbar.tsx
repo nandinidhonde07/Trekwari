@@ -113,7 +113,7 @@ export default function Navbar() {
     { name: 'Treks', path: '/treks' },
     { name: 'Gallery', path: '/gallery' },
     { name: 'Blog', path: '/blog' },
-    { name: 'Contact', path: '/contact' }
+    { name: 'Contact', path: '/#contact' }
   ];
 
   return (

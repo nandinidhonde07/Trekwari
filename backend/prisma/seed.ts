@@ -467,12 +467,12 @@ async function main() {
   // 8. Seed Gallery Images
   await prisma.galleryImage.createMany({
     data: [
-      { url: '/images/kalsubai_2.jpg', category: 'MOUNTAINS', caption: 'Sunrise above clouds at Kalsubai Peak' },
-      { url: '/images/kalsubai_3.jpg', category: 'MOUNTAINS', caption: 'Hikers navigating the final ladders' },
-      { url: '/images/adrai_4.jpg', category: 'FOREST', caption: 'Foggy meadows of Adrai forest' },
-      { url: '/images/adrai_5.jpg', category: 'FOREST', caption: 'The famous lone tree of Adrai' },
-      { url: '/images/adrai_3.jpg', category: 'GROUP_PHOTOS', caption: 'Trekking during downpours in Malshej' },
-      { url: '/images/adrai_6.jpg', category: 'GROUP_PHOTOS', caption: 'TreckWari family resting in the valley' }
+      { url: '/images/kalsubai_2.jpg', category: 'KALSUBAI', caption: 'Sunrise above clouds at Kalsubai Peak' },
+      { url: '/images/kalsubai_3.jpg', category: 'KALSUBAI', caption: 'Hikers navigating the final ladders' },
+      { url: '/images/adrai_4.jpg', category: 'ADRAI', caption: 'Foggy meadows of Adrai forest' },
+      { url: '/images/adrai_5.jpg', category: 'ADRAI', caption: 'The famous lone tree of Adrai' },
+      { url: '/images/adrai_3.jpg', category: 'ADRAI', caption: 'Trekking during downpours in Malshej' },
+      { url: '/images/adrai_6.jpg', category: 'ADRAI', caption: 'TreckWari family resting in the valley' }
     ]
   });
 

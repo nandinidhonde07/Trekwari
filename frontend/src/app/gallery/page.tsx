@@ -338,15 +338,47 @@ export default function GalleryPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Image URL (Cloudinary path)</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="https://cloudinary.com/..."
-                    value={newMediaUrl}
-                    onChange={(e) => setNewMediaUrl(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none"
-                  />
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Upload Photo</label>
+                  {newMediaUrl ? (
+                    <div className="relative rounded-2xl border border-gray-150 overflow-hidden aspect-video bg-gray-50 flex items-center justify-center">
+                      <img src={newMediaUrl.startsWith('data:') ? newMediaUrl : newMediaUrl} alt="Memory preview" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setNewMediaUrl('')}
+                        className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1.5 hover:bg-red-500 shadow-md transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-orange-500/50 transition-colors cursor-pointer relative bg-gray-50/50">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        required
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 5 * 1024 * 1024) {
+                              alert('Image size must be smaller than 5MB.');
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.readAsDataURL(file);
+                            reader.onload = () => {
+                              setNewMediaUrl(reader.result as string);
+                            };
+                          }
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <Plus className="h-6 w-6 text-gray-400" />
+                        <span className="text-xs text-gray-500 font-medium">Click to select or drag photo here</span>
+                        <span className="text-[10px] text-gray-400">Max size 5MB (PNG, JPG)</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>

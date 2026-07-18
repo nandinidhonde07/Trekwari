@@ -70,12 +70,19 @@ export async function createMemory(req: AuthRequest, res: Response) {
   }
 
   try {
+    let finalUrl = mediaUrl;
+    // Check if the payload is a base64 data URI and upload to Cloudinary directly
+    if (mediaUrl.startsWith('data:image/') || mediaUrl.startsWith('data:application/octet-stream')) {
+      const { uploadToCloudinary } = require('../utils/cloudinary');
+      finalUrl = await uploadToCloudinary(mediaUrl, 'memories');
+    }
+
     const memory = await prisma.memory.create({
       data: {
         userId: req.user.id,
         eventId,
         caption,
-        mediaUrl,
+        mediaUrl: finalUrl,
         mediaType: mediaType || 'IMAGE'
       },
       include: {

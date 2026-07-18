@@ -11,7 +11,8 @@ import { useAuth } from '../../../hooks/useAuth';
 import { 
   Calendar, Clock, Mountain, MapPin, IndianRupee, 
   Sparkles, CheckCircle2, User, AlertCircle, Compass, 
-  Wind, Umbrella, CheckSquare, Sunrise, Sunset, X, Star, ChevronRight
+  Wind, Umbrella, CheckSquare, Sunrise, Sunset, X, Star, ChevronRight,
+  Flame, Flag, BookOpen, Activity
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,7 +36,7 @@ interface EventDetails {
   location: string;
   description: string;
   highlights: string[];
-  itinerary: Array<{ time: string; activity: string }>;
+  itinerary: any[];
   thingsToCarry: string[];
   fitnessLevel: string;
   safetyMeasures: string[];
@@ -66,6 +67,7 @@ export default function TrekDetailsPage() {
   const [trek, setTrek] = useState<EventDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [openDays, setOpenDays] = useState<Record<number, boolean>>({ 1: true });
 
   // Booking Flow States
   const [bookingDrawerOpen, setBookingDrawerOpen] = useState(false);
@@ -464,22 +466,120 @@ export default function TrekDetailsPage() {
               viewport={{ once: true }}
               className="space-y-6 pt-8 border-t border-gray-100"
             >
-              <h3 className="text-xl sm:text-2xl font-extrabold text-dark-charcoal font-display">Trek Timeline</h3>
-              <div className="relative border-l border-gray-200 ml-4 pl-8 space-y-8 py-2">
-                {trek.itinerary.map((step, idx) => (
-                  <div key={idx} className="relative">
-                    {/* Timeline circle */}
-                    <div className="absolute left-[-37px] top-1 bg-white border-2 border-primary-orange h-4 w-4 rounded-full flex items-center justify-center shadow-sm" />
-                    <p className="text-[10px] font-extrabold text-primary-orange font-sans uppercase tracking-widest">{step.time}</p>
-                    <p className="text-sm text-dark-charcoal font-bold font-display mt-1">{step.activity}</p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-dark-charcoal font-display">Trek Timeline & Itinerary</h3>
+              
+              {(() => {
+                const isMultiDay = Array.isArray(trek.itinerary) && 
+                                   trek.itinerary.length > 0 && 
+                                   (trek.itinerary[0]?.dayNumber !== undefined || trek.itinerary[0]?.activities !== undefined);
+
+                const getIcon = (iconName: string) => {
+                  switch (iconName) {
+                    case 'Sunrise': return <Sunrise className="h-3.5 w-3.5 text-amber-500" />;
+                    case 'Transport': return <Activity className="h-3.5 w-3.5 text-blue-500" />;
+                    case 'Food & Meals': return <Flame className="h-3.5 w-3.5 text-orange-500" />;
+                    case 'Camping': return <BookOpen className="h-3.5 w-3.5 text-teal-500" />;
+                    case 'Trek Trail': return <Compass className="h-3.5 w-3.5 text-emerald-500" />;
+                    case 'Flag summit': return <Flag className="h-3.5 w-3.5 text-red-500" />;
+                    default: return <Compass className="h-3.5 w-3.5 text-emerald-500" />;
+                  }
+                };
+
+                if (isMultiDay) {
+                  return (
+                    <div className="space-y-4">
+                      {trek.itinerary.map((day: any) => {
+                        const isExpanded = !!openDays[day.dayNumber];
+                        return (
+                          <div key={day.dayNumber} className="border border-gray-150 rounded-[20px] overflow-hidden bg-white shadow-sm">
+                            <button
+                              type="button"
+                              onClick={() => setOpenDays(prev => ({ ...prev, [day.dayNumber]: !prev[day.dayNumber] }))}
+                              className="w-full flex items-center justify-between p-5 bg-gray-50/50 hover:bg-gray-50 transition-all font-semibold font-sans text-left border-none outline-none cursor-pointer"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="bg-orange-50 text-primary-orange text-xs font-black px-2.5 py-1 rounded-lg">Day {day.dayNumber}</span>
+                                <div>
+                                  <h4 className="text-sm font-bold text-dark-charcoal">{day.dayTitle}</h4>
+                                  {day.shortSummary && <p className="text-[10px] text-gray-400 font-bold mt-0.5">{day.shortSummary}</p>}
+                                </div>
+                              </div>
+                              {isExpanded ? <ChevronRight className="h-4 w-4 text-gray-400 rotate-90 transition-transform duration-300" /> : <ChevronRight className="h-4 w-4 text-gray-400 transition-transform duration-300" />}
+                            </button>
+                            
+                            {isExpanded && (
+                              <div className="p-5 border-t border-gray-100 space-y-4 bg-white animate-in slide-in-from-top-1 duration-200">
+                                
+                                {/* Day Stats list */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 p-3.5 rounded-xl border border-gray-100 font-sans">
+                                  {day.accommodation && (
+                                    <div>
+                                      <p className="text-[8px] font-extrabold text-gray-400">Accommodation</p>
+                                      <p className="text-dark-charcoal text-xs font-bold mt-0.5">{day.accommodation}</p>
+                                    </div>
+                                  )}
+                                  {day.distanceCovered !== undefined && (
+                                    <div>
+                                      <p className="text-[8px] font-extrabold text-gray-400">Distance</p>
+                                      <p className="text-dark-charcoal text-xs font-bold mt-0.5">{day.distanceCovered} km</p>
+                                    </div>
+                                  )}
+                                  {day.trekDuration && (
+                                    <div>
+                                      <p className="text-[8px] font-extrabold text-gray-400">Trek Time</p>
+                                      <p className="text-dark-charcoal text-xs font-bold mt-0.5">{day.trekDuration}</p>
+                                    </div>
+                                  )}
+                                  {day.elevationGain !== undefined && (
+                                    <div>
+                                      <p className="text-[8px] font-extrabold text-gray-400">Altitude Gain</p>
+                                      <p className="text-dark-charcoal text-xs font-bold mt-0.5">+{day.elevationGain}m</p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Timeline Events list */}
+                                <div className="relative border-l border-gray-200 ml-4 pl-8 space-y-6 py-2">
+                                  {day.activities?.map((act: any, idx: number) => (
+                                    <div key={idx} className="relative font-sans">
+                                      {/* Timeline Circle with Icon */}
+                                      <div className="absolute left-[-47px] top-0 bg-white border-2 border-gray-150 h-8 w-8 rounded-full flex items-center justify-center shadow-sm">
+                                        {getIcon(act.icon)}
+                                      </div>
+                                      <p className="text-[10px] font-extrabold text-primary-orange uppercase tracking-wider">{act.time}</p>
+                                      <p className="text-sm text-dark-charcoal font-bold font-display mt-0.5">{act.title}</p>
+                                      {act.description && <p className="text-xs text-gray-650 font-semibold font-sans mt-1 leading-relaxed">{act.description}</p>}
+                                    </div>
+                                  ))}
+                                </div>
+
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+
+                // Fallback to old flat array format
+                return (
+                  <div className="relative border-l border-gray-200 ml-4 pl-8 space-y-8 py-2">
+                    {trek.itinerary.map((step, idx) => (
+                      <div key={idx} className="relative">
+                        <div className="absolute left-[-37px] top-1 bg-white border-2 border-primary-orange h-4 w-4 rounded-full flex items-center justify-center shadow-sm" />
+                        <p className="text-[10px] font-extrabold text-primary-orange font-sans uppercase tracking-widest">{step.time}</p>
+                        <p className="text-sm text-dark-charcoal font-bold font-display mt-1">{step.activity}</p>
+                      </div>
+                    ))}
+                    <div className="relative">
+                      <div className="absolute left-[-37px] top-1 bg-white border-2 border-dark-charcoal h-4 w-4 rounded-full flex items-center justify-center shadow-sm" />
+                      <p className="text-[10px] font-extrabold text-dark-charcoal font-sans uppercase tracking-widest">End of Trip</p>
+                      <p className="text-sm text-gray-500 font-bold font-display mt-1">Participation Certificate Issued (PDF)</p>
+                    </div>
                   </div>
-                ))}
-                <div className="relative">
-                  <div className="absolute left-[-37px] top-1 bg-white border-2 border-dark-charcoal h-4 w-4 rounded-full flex items-center justify-center shadow-sm" />
-                  <p className="text-[10px] font-extrabold text-dark-charcoal font-sans uppercase tracking-widest">End of Trip</p>
-                  <p className="text-sm text-gray-500 font-bold font-display mt-1">Participation Certificate Issued (PDF)</p>
-                </div>
-              </div>
+                );
+              })()}
             </motion.section>
 
             {/* Things to Carry Section */}
@@ -624,7 +724,7 @@ export default function TrekDetailsPage() {
               <h3 className="text-xl sm:text-2xl font-extrabold text-dark-charcoal font-display">Trail Map</h3>
               <div className="h-64 sm:h-96 w-full rounded-2xl overflow-hidden border border-gray-150">
                 <iframe 
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(trek.location || '')}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                  src={trek.googleMapsUrl || `https://maps.google.com/maps?q=${encodeURIComponent(trek.location || '')}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
                   width="100%" 
                   height="100%" 
                   style={{ border: 0 }} 

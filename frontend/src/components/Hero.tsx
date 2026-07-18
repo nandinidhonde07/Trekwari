@@ -60,8 +60,8 @@ export default function Hero() {
   const reasons = [
     {
       icon: <Award className="h-5 w-5 text-primary-orange" />,
-      title: 'Experienced Trek Leaders',
-      desc: 'Certified, first-aid trained mountain leaders with 100+ summits each.'
+      title: 'Trek Guider',
+      desc: 'Have experience of trekking.'
     },
     {
       icon: <Shield className="h-5 w-5 text-primary-orange" />,

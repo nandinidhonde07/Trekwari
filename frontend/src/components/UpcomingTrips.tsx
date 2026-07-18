@@ -3,7 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import Link from 'next/link';
-import { Clock, Mountain, User, Star, AlertCircle, Loader2 } from 'lucide-react';
+import { Clock, Mountain, User, Star, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Skeleton } from './ui/skeleton';
+import { EmptyState } from './ui/empty-state';
 
 interface EventData {
   id: string;
@@ -29,9 +32,8 @@ export default function UpcomingTrips() {
     async function loadTrips() {
       try {
         const data = await api.events.list({ status: 'OPEN_REGISTRATION' });
-        // Take only upcoming events
         const upcomingOnly = data.filter((e: any) => new Date(e.startDate) > new Date());
-        setTrips(upcomingOnly.slice(0, 3)); // Display up to 3 upcoming departures
+        setTrips(upcomingOnly.slice(0, 3));
       } catch (err) {
         console.error('Failed to load upcoming events:', err);
       } finally {
@@ -42,126 +44,141 @@ export default function UpcomingTrips() {
   }, []);
 
   return (
-    <section className="py-24 bg-white font-sans border-t border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-24 bg-light-gray border-t border-gray-100 relative">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8">
         
         {/* Section Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
-          <div className="space-y-3">
-            <span className="text-xs uppercase tracking-[0.2em] font-extrabold text-orange-600 block">
+          <div className="space-y-4">
+            <span className="text-xs uppercase tracking-[0.3em] font-extrabold text-primary-orange block">
               Upcoming Departures
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight">
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-dark-charcoal font-display tracking-tight leading-tight">
               The mountains are calling.
             </h2>
-            <p className="text-gray-500 text-sm sm:text-base leading-relaxed max-w-xl">
-              Handpicked Sahyadri departures. Small groups. Verified routes. Sunrise-catching guaranteed.
+            <p className="text-gray-500 text-xs sm:text-sm leading-relaxed max-w-xl font-medium">
+              Handpicked Sahyadri departures. Small groups. Certified safety protocols. Unforgettable sunrise views guaranteed.
             </p>
           </div>
           <Link
             href="/treks"
-            className="flex-shrink-0 border border-gray-200 hover:border-gray-900 text-gray-800 font-bold text-xs uppercase tracking-wider px-6 py-3.5 rounded-full transition-colors flex items-center gap-2"
+            className="group flex-shrink-0 border border-gray-200 hover:border-dark-charcoal hover:bg-dark-charcoal hover:text-white text-dark-charcoal font-bold text-xs uppercase tracking-widest px-6 py-4 rounded-full transition-all duration-300 flex items-center gap-2"
           >
             <span>View all treks</span>
-            <span>&rarr;</span>
+            <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
 
-        {/* Loading Spinner */}
+        {/* Skeletons/Empty State/Trips Grid */}
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 text-orange-600 animate-spin" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="bg-white rounded-[20px] overflow-hidden border border-gray-100 p-4 space-y-4 shadow-sm">
+                <Skeleton className="h-56 w-full rounded-[14px]" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <Skeleton className="h-6 w-1/3" />
+                  <Skeleton className="h-8 w-24 rounded-full" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : trips.length === 0 ? (
-          /* Empty State */
-          <div className="max-w-md mx-auto text-center bg-white border border-gray-200 p-8 rounded-3xl shadow-sm">
-            <AlertCircle className="h-10 w-10 text-orange-600 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-gray-900">No Active Bookings Open</h3>
-            <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-              We are currently planning our next Sahyadri expeditions. Follow our Instagram profile <strong className="text-orange-600">@trekwari</strong> to get notified first!
-            </p>
+          <div className="max-w-xl mx-auto">
+            <EmptyState 
+              title="No Departures Open Currently"
+              description="We are planning our upcoming mountain treks and monsoon expeditions. Follow us on Instagram @trekwari to get alerts as soon as bookings open!"
+              actionLabel="Follow Instagram"
+              onAction={() => window.open('https://instagram.com/trekwari', '_blank')}
+            />
           </div>
         ) : (
-          /* Trips Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {trips.map((trip) => {
+            {trips.map((trip, idx) => {
               const imgUrl = Array.isArray(trip.images) ? trip.images[0] : JSON.parse(trip.images || '[]')[0];
-              
-              // Difficulty colors
               const isChallenging = trip.difficulty.toLowerCase().includes('challenging') || trip.difficulty.toLowerCase().includes('hard');
-              const difficultyBadgeClass = isChallenging 
-                ? 'bg-red-50 text-red-700 border-red-100' 
-                : 'bg-orange-50 text-orange-700 border-orange-100';
-
+              
               return (
-                <Link
+                <motion.div
                   key={trip.id}
-                  href={`/treks/${trip.slug}`}
-                  className="bg-white rounded-3xl overflow-hidden border border-gray-150 flex flex-col justify-between group hover:shadow-xl hover:shadow-gray-250/20 hover:border-orange-600/20 transition-all duration-300"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: idx * 0.15 }}
+                  className="bg-white rounded-[20px] overflow-hidden border border-gray-100 flex flex-col justify-between group hover:shadow-xl hover:border-primary-orange/20 transition-all duration-300 shadow-sm"
                 >
-                  <div>
-                    {/* Header Image with dark gradient and text overlay */}
-                    <div className="relative h-64 overflow-hidden rounded-t-3xl">
+                  <Link href={`/treks/${trip.slug}`}>
+                    <div className="relative h-60 overflow-hidden m-3 rounded-[14px]">
                       <img
                         src={imgUrl || 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800'}
                         alt={trip.title}
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/25" />
 
                       {/* Difficulty Badge */}
-                      <span className={`absolute top-4 left-4 border text-[9px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-lg ${difficultyBadgeClass}`}>
+                      <span className={`absolute top-4 left-4 border text-[8px] uppercase font-extrabold tracking-widest px-3 py-1 rounded-[8px] backdrop-blur-md ${
+                        isChallenging 
+                          ? 'bg-red-50 text-red-650 border-red-100' 
+                          : 'bg-orange-50 text-primary-orange border-orange-100'
+                      }`}>
                         {trip.difficulty}
                       </span>
 
-                      {/* Mock rating badge */}
-                      <span className="absolute top-4 right-4 bg-white/95 text-gray-800 text-[10px] font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm border border-gray-100">
-                        <Star className="h-3 w-3 fill-orange-500 text-orange-500" />
+                      {/* Rating badge */}
+                      <span className="absolute top-4 right-4 bg-white/95 text-dark-charcoal text-[9px] font-extrabold px-2.5 py-1 rounded-[8px] flex items-center gap-1 shadow-sm border border-gray-100">
+                        <Star className="h-3 w-3 fill-primary-orange text-primary-orange" />
                         <span>4.9</span>
                       </span>
 
-                      {/* Location & Title Overlay */}
+                      {/* Location & Title */}
                       <div className="absolute bottom-4 left-4 right-4 text-white">
-                        <p className="text-[9px] font-extrabold uppercase tracking-wider text-gray-300">
+                        <p className="text-[8px] font-extrabold uppercase tracking-widest text-gray-300">
                           {trip.location.split(',')[0]}
                         </p>
-                        <h3 className="text-xl font-bold tracking-tight mt-0.5">
+                        <h3 className="text-lg font-bold tracking-tight mt-1 font-display">
                           {trip.title}
                         </h3>
                       </div>
                     </div>
 
-                    {/* Stats Strip under image */}
-                    <div className="p-6">
-                      <div className="grid grid-cols-3 gap-2 py-3 border-b border-gray-100 text-xs text-gray-500 font-bold text-center">
+                    {/* Stats strip */}
+                    <div className="px-6 py-4">
+                      <div className="grid grid-cols-3 gap-2 py-3 border-b border-gray-50 text-[10px] text-gray-500 font-bold text-center">
                         <div className="flex flex-col items-center">
-                          <span className="text-[9px] uppercase tracking-wider text-gray-400">Duration</span>
-                          <span className="text-gray-800 mt-1 flex items-center gap-1"><Clock className="h-3 w-3 text-orange-600" /> {trip.duration}</span>
+                          <span className="text-[8px] uppercase tracking-wider text-gray-400">Duration</span>
+                          <span className="text-dark-charcoal mt-1 flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-primary-orange" /> {trip.duration}</span>
                         </div>
                         <div className="flex flex-col items-center border-l border-r border-gray-100">
-                          <span className="text-[9px] uppercase tracking-wider text-gray-400">Altitude</span>
-                          <span className="text-gray-800 mt-1 flex items-center gap-1"><Mountain className="h-3 w-3 text-orange-600" /> {trip.altitude || 'N/A'}</span>
+                          <span className="text-[8px] uppercase tracking-wider text-gray-400">Altitude</span>
+                          <span className="text-dark-charcoal mt-1 flex items-center gap-1"><Mountain className="h-3.5 w-3.5 text-primary-orange" /> {trip.altitude || '1646m'}</span>
                         </div>
                         <div className="flex flex-col items-center">
-                          <span className="text-[9px] uppercase tracking-wider text-gray-400">Availability</span>
-                          <span className="text-orange-600 mt-1 flex items-center gap-1"><User className="h-3 w-3 text-orange-600" /> {trip.availableSeats} Left</span>
+                          <span className="text-[8px] uppercase tracking-wider text-gray-400">Availability</span>
+                          <span className="text-primary-orange mt-1 flex items-center gap-1"><User className="h-3.5 w-3.5" /> {trip.availableSeats} Left</span>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </Link>
 
                   {/* Pricing footer */}
                   <div className="px-6 pb-6 flex items-center justify-between">
                     <div>
-                      <p className="text-[9px] uppercase tracking-wider text-gray-400 font-extrabold">From</p>
-                      <p className="text-lg font-extrabold text-gray-900 mt-0.5">INR {trip.price}</p>
+                      <p className="text-[8px] uppercase tracking-wider text-gray-400 font-extrabold">From</p>
+                      <p className="text-base font-extrabold text-dark-charcoal mt-0.5">INR {trip.price}</p>
                     </div>
-                    <span className="bg-orange-600 text-white font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded-full group-hover:bg-orange-500 transition-colors shadow-md">
+                    <Link
+                      href={`/treks/${trip.slug}`}
+                      className="bg-primary-orange text-white font-bold text-xs uppercase tracking-widest px-6 py-3.5 rounded-button hover:bg-orange-600 transition-colors shadow-md shadow-orange-500/10 cursor-pointer"
+                    >
                       Book Now
-                    </span>
+                    </Link>
                   </div>
 
-                </Link>
+                </motion.div>
               );
             })}
           </div>

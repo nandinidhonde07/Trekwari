@@ -202,7 +202,7 @@ export default function LeaderDashboardPage() {
   if (loading || loadingEvents) {
     return (
       <div className="min-h-screen bg-gray-50 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-forest-green" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-orange" />
       </div>
     );
   }
@@ -212,10 +212,10 @@ export default function LeaderDashboardPage() {
       <Navbar />
       <WhatsAppWidget />
 
-      <section className="pt-28 pb-12 bg-forest-green text-white">
+      <section className="pt-28 pb-12 bg-white border-b border-gray-150 text-dark-charcoal">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <span className="text-[10px] uppercase font-bold text-sunrise-orange tracking-widest">Trek Leader Console</span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-display mt-1">Expedition Dispatch Control</h1>
+          <span className="text-[10px] uppercase font-bold text-primary-orange tracking-widest">Trek Leader Console</span>
+          <h1 className="text-2xl sm:text-3xl font-black font-display mt-1 text-dark-charcoal">Expedition Dispatch Control</h1>
         </div>
       </section>
 
@@ -228,7 +228,7 @@ export default function LeaderDashboardPage() {
             
             {/* assigned events */}
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-              <h3 className="text-xs uppercase font-bold text-forest-green tracking-wider border-b border-gray-50 pb-2">Assigned Treks</h3>
+              <h3 className="text-[10px] uppercase font-extrabold text-primary-orange tracking-widest border-b border-gray-150 pb-2">Assigned Treks</h3>
               
               {events.length === 0 ? (
                 <p className="text-xs text-gray-400">No treks assigned currently.</p>
@@ -238,13 +238,13 @@ export default function LeaderDashboardPage() {
                     <button
                       key={e.id}
                       onClick={() => setSelectedEventId(e.id)}
-                      className={`w-full text-left p-3.5 rounded-xl border transition-all text-xs flex flex-col justify-between ${
+                      className={`w-full text-left p-3.5 rounded-xl border transition-all text-xs flex flex-col justify-between cursor-pointer ${
                         selectedEventId === e.id
-                          ? 'border-forest-green bg-emerald-50/30'
-                          : 'border-gray-100 hover:border-gray-300'
+                          ? 'border-primary-orange bg-orange-50/30'
+                          : 'border-gray-150 hover:border-gray-350'
                       }`}
                     >
-                      <span className="font-bold text-forest-green font-display">{e.title}</span>
+                      <span className="font-bold text-dark-charcoal font-display">{e.title}</span>
                       <span className="text-gray-400 mt-1 flex items-center font-sans">
                         <Calendar className="h-3.5 w-3.5 mr-1 text-sunrise-orange" />
                         {new Date(e.startDate).toLocaleDateString()}
@@ -257,7 +257,7 @@ export default function LeaderDashboardPage() {
 
             {/* QR Scan Check-In Input */}
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-              <h3 className="text-xs uppercase font-bold text-forest-green tracking-wider border-b border-gray-50 pb-2">Roster QR Check-In</h3>
+              <h3 className="text-[10px] uppercase font-extrabold text-primary-orange tracking-widest border-b border-gray-150 pb-2">Roster QR Check-In</h3>
               {scanError && (
                 <div className="bg-red-50 border border-red-200 text-red-800 text-[11px] px-3.5 py-2.5 rounded-xl flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
@@ -265,7 +265,7 @@ export default function LeaderDashboardPage() {
                 </div>
               )}
               {scanResult && (
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] p-3.5 rounded-xl space-y-1">
+                <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 text-[11px] p-3.5 rounded-xl space-y-1 font-semibold">
                   <p className="font-bold">✓ Ticket Verified!</p>
                   <p><strong>Name:</strong> {scanResult.leadName}</p>
                   <p><strong>Seats:</strong> {scanResult.seatCount} | Status: PAID</p>
@@ -292,7 +292,7 @@ export default function LeaderDashboardPage() {
                       setScanResult(null);
                       setIsScanning(true);
                     }}
-                    className="w-full bg-forest-green hover:bg-emerald-800 text-white font-bold text-[10px] uppercase tracking-wider py-2.5 rounded-xl transition-colors flex justify-center items-center gap-1.5"
+                    className="w-full bg-primary-orange hover:bg-orange-600 text-white font-bold text-[10px] uppercase tracking-widest py-2.5 rounded-xl transition-colors flex justify-center items-center gap-1.5 cursor-pointer"
                   >
                     <Search className="h-4 w-4" /> Start Camera Scan
                   </button>
@@ -304,9 +304,9 @@ export default function LeaderDashboardPage() {
                       placeholder="Or enter booking reference..."
                       value={qrCodeInput}
                       onChange={(e) => setQrCodeInput(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-forest-green"
+                      className="w-full border border-gray-250 bg-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-orange font-semibold text-dark-charcoal"
                     />
-                    <button type="submit" className="bg-forest-green text-white p-2 rounded-xl">
+                    <button type="submit" className="bg-primary-orange hover:bg-orange-600 text-white p-2 rounded-xl cursor-pointer">
                       <ArrowRight className="h-4 w-4" />
                     </button>
                   </form>
@@ -317,23 +317,23 @@ export default function LeaderDashboardPage() {
           </div>
 
           {/* Right: Participant Check-In List */}
-          <div className="lg:col-span-8 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
-            <h3 className="text-lg font-bold text-forest-green font-display border-b border-gray-50 pb-3">Trekkers Roster</h3>
+          <div className="lg:col-span-8 bg-white p-6 sm:p-8 rounded-[24px] border border-gray-150 shadow-sm space-y-6">
+            <h3 className="text-lg font-bold text-dark-charcoal font-display border-b border-gray-150 pb-3">Trekkers Roster</h3>
 
             {loadingRoster ? (
               <div className="flex justify-center items-center h-48">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-forest-green" />
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-orange" />
               </div>
             ) : roster.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-12">No paid participants registered for this trek yet.</p>
             ) : (
               <div className="space-y-6">
                 {roster.map((booking) => (
-                  <div key={booking.id} className="border border-gray-200/80 rounded-2xl p-5 space-y-4 hover:border-emerald-600/30 transition-colors">
+                  <div key={booking.id} className="border border-gray-150 rounded-[20px] p-5 space-y-4 hover:border-primary-orange/20 transition-all duration-300 bg-white">
                     {/* Hiker Booking Details Header */}
-                    <div className="flex justify-between items-start gap-4 border-b border-gray-100 pb-3">
+                    <div className="flex justify-between items-start gap-4 border-b border-gray-150 pb-3">
                       <div>
-                        <h4 className="text-sm font-bold text-forest-green font-display">{booking.user.name}</h4>
+                        <h4 className="text-sm font-bold text-dark-charcoal font-display">{booking.user.name}</h4>
                         <p className="text-[10px] text-gray-400">ID: {booking.bookingId}  |  Emergency Contact: {booking.emergencyContact}</p>
                       </div>
                       {/* Emergency Badge */}
@@ -355,10 +355,10 @@ export default function LeaderDashboardPage() {
                           
                           <button
                             onClick={() => handleMarkAttendance(member.id, member.attendanceStatus)}
-                            className={`text-[10px] uppercase font-extrabold tracking-wider px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 focus:outline-none ${
+                            className={`text-[10px] uppercase font-extrabold tracking-wider px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 focus:outline-none cursor-pointer ${
                               member.attendanceStatus === 'PRESENT'
                                 ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                : 'bg-gray-200 text-gray-500 hover:bg-emerald-50 hover:text-forest-green'
+                                : 'bg-gray-250 text-gray-500 hover:bg-orange-50 hover:text-primary-orange'
                             }`}
                           >
                             {member.attendanceStatus === 'PRESENT' ? <Check className="h-3 w-3" /> : null}

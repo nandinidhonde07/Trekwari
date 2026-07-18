@@ -18,7 +18,7 @@ export async function getMemories(req: AuthRequest, res: Response) {
       where: whereClause,
       include: {
         user: { select: { id: true, name: true, avatarUrl: true, badgeLevel: true } },
-        event: { select: { title: true, slug: true } },
+        event: { select: { title: true, slug: true, location: true, startDate: true } },
         likes: { select: { userId: true } },
         comments: {
           include: {
@@ -86,8 +86,8 @@ export async function createMemory(req: AuthRequest, res: Response) {
         mediaType: mediaType || 'IMAGE'
       },
       include: {
-        user: { select: { name: true, avatarUrl: true } },
-        event: { select: { title: true } }
+        user: { select: { id: true, name: true, avatarUrl: true, badgeLevel: true } },
+        event: { select: { title: true, slug: true, location: true, startDate: true } }
       }
     });
 

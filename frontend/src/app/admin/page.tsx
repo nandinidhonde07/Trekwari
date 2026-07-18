@@ -6,6 +6,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useAuth } from '../../hooks/useAuth';
 import { api } from '../../lib/api';
+import { useToast } from '../../components/ui/toast';
 import { 
   BarElement, CategoryScale, Chart as ChartJS, Legend, 
   LinearScale, LineElement, PointElement, Title, Tooltip 
@@ -79,6 +80,7 @@ interface PolicyItem {
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading } = useAuth();
+  const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState('analytics'); // analytics, treks, reviews, policies, settings
   const [stats, setStats] = useState<any>(null);
@@ -223,29 +225,29 @@ export default function AdminDashboardPage() {
   const handleToggleUserStatus = async (id: string, currentStatus: boolean) => {
     try {
       const res = await api.admin.toggleUserStatus(id, !currentStatus);
-      alert(res.message);
+      toast(res.message, 'success');
       fetchAdminUsers();
     } catch (err: any) {
-      alert(err.message || 'Failed to update user status.');
+      toast(err.message || 'Failed to update user status.', 'error');
     }
   };
 
   const handleVerifyUserEmail = async (id: string) => {
     try {
       const res = await api.admin.verifyUserEmail(id);
-      alert(res.message);
+      toast(res.message, 'success');
       fetchAdminUsers();
     } catch (err: any) {
-      alert(err.message || 'Failed to verify user email.');
+      toast(err.message || 'Failed to verify user email.', 'error');
     }
   };
 
   const handleAdminResetPassword = async (id: string) => {
     try {
       const res = await api.admin.resetUserPassword(id);
-      alert(res.message);
+      toast(res.message, 'success');
     } catch (err: any) {
-      alert(err.message || 'Failed to trigger password reset.');
+      toast(err.message || 'Failed to trigger password reset.', 'error');
     }
   };
 
@@ -612,7 +614,7 @@ export default function AdminDashboardPage() {
   if (loading || loadingStats || !stats) {
     return (
       <div className="min-h-screen bg-gray-50 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-forest-green" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-orange" />
       </div>
     );
   }
@@ -657,7 +659,7 @@ export default function AdminDashboardPage() {
     <main className="min-h-screen relative bg-gray-50">
       <Navbar />
       
-      <section className="pt-28 pb-12 bg-forest-green text-white">
+      <section className="pt-28 pb-12 bg-primary-orange text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <span className="text-[10px] uppercase font-bold text-sunrise-orange tracking-widest">Admin Control Panel</span>
           <h1 className="text-2xl sm:text-3xl font-extrabold font-display mt-1">TreckWari Platform Dashboard</h1>
@@ -669,74 +671,74 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Left: Settings tabs sidebar */}
-          <div className="lg:col-span-3 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm h-fit space-y-2">
+          <div className="lg:col-span-3 bg-white p-6 rounded-[20px] border border-gray-100 shadow-sm h-fit space-y-1.5">
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`w-full flex items-center gap-2 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-bold tracking-wider transition-colors ${
-                activeTab === 'analytics' ? 'bg-forest-green text-white' : 'text-gray-400 hover:bg-gray-50'
+              className={`w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-extrabold tracking-widest transition-all cursor-pointer ${
+                activeTab === 'analytics' ? 'bg-primary-orange text-white shadow-md shadow-orange-500/10' : 'text-gray-400 hover:bg-gray-50'
               }`}
             >
-              <BarChart3 className="h-4 w-4" />
+              <BarChart3 className="h-4.5 w-4.5" />
               Business Analytics
             </button>
 
             <button
               onClick={() => setActiveTab('treks')}
-              className={`w-full flex items-center gap-2 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-bold tracking-wider transition-colors ${
-                activeTab === 'treks' ? 'bg-forest-green text-white' : 'text-gray-400 hover:bg-gray-50'
+              className={`w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-extrabold tracking-widest transition-all cursor-pointer ${
+                activeTab === 'treks' ? 'bg-primary-orange text-white shadow-md shadow-orange-500/10' : 'text-gray-400 hover:bg-gray-50'
               }`}
             >
-              <Calendar className="h-4 w-4" />
+              <Calendar className="h-4.5 w-4.5" />
               Manage Treks (CMS)
             </button>
 
             <button
               onClick={() => setActiveTab('policies')}
-              className={`w-full flex items-center gap-2 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-bold tracking-wider transition-colors ${
-                activeTab === 'policies' ? 'bg-forest-green text-white' : 'text-gray-400 hover:bg-gray-50'
+              className={`w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-extrabold tracking-widest transition-all cursor-pointer ${
+                activeTab === 'policies' ? 'bg-primary-orange text-white shadow-md shadow-orange-500/10' : 'text-gray-400 hover:bg-gray-50'
               }`}
             >
-              <BookOpen className="h-4 w-4" />
+              <BookOpen className="h-4.5 w-4.5" />
               Trek Policies (CMS)
             </button>
 
             <button
               onClick={() => setActiveTab('reviews')}
-              className={`w-full flex items-center gap-2 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-bold tracking-wider transition-colors ${
-                activeTab === 'reviews' ? 'bg-forest-green text-white' : 'text-gray-400 hover:bg-gray-50'
+              className={`w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-extrabold tracking-widest transition-all cursor-pointer ${
+                activeTab === 'reviews' ? 'bg-primary-orange text-white shadow-md shadow-orange-500/10' : 'text-gray-400 hover:bg-gray-50'
               }`}
             >
-              <Star className="h-4 w-4" />
+              <Star className="h-4.5 w-4.5" />
               Review Approvals ({pendingReviews.length})
             </button>
 
             <button
               onClick={() => setActiveTab('bookings')}
-              className={`w-full flex items-center gap-2 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-bold tracking-wider transition-colors ${
-                activeTab === 'bookings' ? 'bg-forest-green text-white' : 'text-gray-400 hover:bg-gray-50'
+              className={`w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-extrabold tracking-widest transition-all cursor-pointer ${
+                activeTab === 'bookings' ? 'bg-primary-orange text-white shadow-md shadow-orange-500/10' : 'text-gray-400 hover:bg-gray-50'
               }`}
             >
-              <Users className="h-4 w-4" />
+              <Users className="h-4.5 w-4.5" />
               Manage Bookings
             </button>
 
             <button
               onClick={() => setActiveTab('users')}
-              className={`w-full flex items-center gap-2 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-bold tracking-wider transition-colors ${
-                activeTab === 'users' ? 'bg-forest-green text-white' : 'text-gray-400 hover:bg-gray-50'
+              className={`w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-extrabold tracking-widest transition-all cursor-pointer ${
+                activeTab === 'users' ? 'bg-primary-orange text-white shadow-md shadow-orange-500/10' : 'text-gray-400 hover:bg-gray-50'
               }`}
             >
-              <Users className="h-4 w-4" />
+              <Users className="h-4.5 w-4.5" />
               User & Sessions Control
             </button>
 
             <button
               onClick={() => setActiveTab('settings')}
-              className={`w-full flex items-center gap-2 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-bold tracking-wider transition-colors ${
-                activeTab === 'settings' ? 'bg-forest-green text-white' : 'text-gray-400 hover:bg-gray-50'
+              className={`w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-extrabold tracking-widest transition-all cursor-pointer ${
+                activeTab === 'settings' ? 'bg-primary-orange text-white shadow-md shadow-orange-500/10' : 'text-gray-400 hover:bg-gray-50'
               }`}
             >
-              <SettingsIcon className="h-4 w-4" />
+              <SettingsIcon className="h-4.5 w-4.5" />
               Direct HQ Settings
             </button>
           </div>
@@ -752,28 +754,28 @@ export default function AdminDashboardPage() {
                   <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                     <Users className="h-6 w-6 text-sunrise-orange mb-2" />
                     <p className="text-[10px] uppercase font-bold text-gray-400">Total Users</p>
-                    <p className="text-xl font-extrabold text-forest-green mt-1">{stats.summary.totalUsers}</p>
+                    <p className="text-xl font-extrabold text-dark-charcoal mt-1">{stats.summary.totalUsers}</p>
                   </div>
                   <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                     <Calendar className="h-6 w-6 text-sunrise-orange mb-2" />
                     <p className="text-[10px] uppercase font-bold text-gray-400">Paid Bookings</p>
-                    <p className="text-xl font-extrabold text-forest-green mt-1">{stats.summary.totalBookings}</p>
+                    <p className="text-xl font-extrabold text-dark-charcoal mt-1">{stats.summary.totalBookings}</p>
                   </div>
                   <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                     <DollarSign className="h-6 w-6 text-sunrise-orange mb-2" />
                     <p className="text-[10px] uppercase font-bold text-gray-400">Total Revenue</p>
-                    <p className="text-xl font-extrabold text-forest-green mt-1">₹{stats.summary.totalRevenue}</p>
+                    <p className="text-xl font-extrabold text-dark-charcoal mt-1">₹{stats.summary.totalRevenue}</p>
                   </div>
                   <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                     <Heart className="h-6 w-6 text-sunrise-orange mb-2" />
                     <p className="text-[10px] uppercase font-bold text-gray-400">Conversion</p>
-                    <p className="text-xl font-extrabold text-forest-green mt-1">{stats.summary.conversionRate}%</p>
+                    <p className="text-xl font-extrabold text-dark-charcoal mt-1">{stats.summary.conversionRate}%</p>
                   </div>
                 </div>
 
                 {/* Line Chart Card */}
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                  <h4 className="text-sm font-bold text-forest-green font-display mb-4">Revenue Chart (INR)</h4>
+                  <h4 className="text-sm font-bold text-dark-charcoal font-display mb-4">Revenue Chart (INR)</h4>
                   <div className="h-64 sm:h-80">
                     <Line data={revenueChartData} options={{ responsive: true, maintainAspectRatio: false }} />
                   </div>
@@ -785,7 +787,7 @@ export default function AdminDashboardPage() {
             {activeTab === 'treks' && (
               <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6 animate-in fade-in duration-300">
                 <div className="flex justify-between items-center border-b border-gray-50 pb-3">
-                  <h3 className="text-base font-bold text-forest-green font-display">Trekking Events</h3>
+                  <h3 className="text-base font-bold text-dark-charcoal font-display">Trekking Events</h3>
                   {!showEventForm && (
                     <button
                       onClick={() => {
@@ -801,7 +803,7 @@ export default function AdminDashboardPage() {
                         setEventPolicyId('');
                         setShowEventForm(true);
                       }}
-                      className="bg-forest-green text-white text-xs font-bold uppercase tracking-wider px-3.5 py-2 rounded-xl flex items-center gap-1"
+                      className="bg-primary-orange text-white text-xs font-bold uppercase tracking-wider px-3.5 py-2 rounded-xl flex items-center gap-1"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       Add Event
@@ -812,7 +814,7 @@ export default function AdminDashboardPage() {
                 {showEventForm ? (
                   /* Create/Edit Form */
                   <form onSubmit={handleCreateEvent} className="space-y-4 border border-gray-150 p-5 rounded-2xl bg-gray-50">
-                    <h4 className="text-xs uppercase font-bold text-forest-green mb-4">{editingEventId ? 'Edit Trek details' : 'Add New Trek'}</h4>
+                    <h4 className="text-xs uppercase font-bold text-dark-charcoal mb-4">{editingEventId ? 'Edit Trek details' : 'Add New Trek'}</h4>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <input
@@ -824,7 +826,7 @@ export default function AdminDashboardPage() {
                           setEventTitle(e.target.value);
                           setEventSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, ''));
                         }}
-                        className="border border-gray-200 bg-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-forest-green"
+                        className="border border-gray-200 bg-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-orange"
                       />
                       <input
                         type="text"
@@ -927,7 +929,7 @@ export default function AdminDashboardPage() {
                     />
 
                     <div className="flex gap-3 pt-2">
-                      <button type="submit" className="bg-forest-green text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl">
+                      <button type="submit" className="bg-primary-orange text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl">
                         Save
                       </button>
                       <button 
@@ -944,7 +946,7 @@ export default function AdminDashboardPage() {
                   </form>
                 ) : loadingEvents ? (
                   <div className="flex justify-center py-6">
-                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-forest-green" />
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-orange" />
                   </div>
                 ) : (
                   /* Treks list Table */
@@ -963,13 +965,13 @@ export default function AdminDashboardPage() {
                       <tbody>
                         {events.map((trek) => (
                           <tr key={trek.id} className="border-b border-gray-100 hover:bg-gray-50/50">
-                            <td className="p-3 font-semibold text-forest-green">{trek.title}</td>
+                            <td className="p-3 font-semibold text-dark-charcoal">{trek.title}</td>
                             <td className="p-3">₹{trek.price}</td>
                             <td className="p-3">{trek.availableSeats}/{trek.maxSeats}</td>
                             <td className="p-3">{new Date(trek.startDate).toLocaleDateString()}</td>
                             <td className="p-3">
                               <span className={`font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded ${
-                                trek.status === 'OPEN_REGISTRATION' ? 'bg-emerald-50 text-forest-green' :
+                                trek.status === 'OPEN_REGISTRATION' ? 'bg-emerald-50 text-dark-charcoal' :
                                 trek.status === 'COMPLETED' ? 'bg-blue-50 text-blue-700' :
                                 trek.status === 'DRAFT' ? 'bg-gray-100 text-gray-500' :
                                 'bg-amber-50 text-amber-700'
@@ -978,7 +980,7 @@ export default function AdminDashboardPage() {
                               </span>
                             </td>
                             <td className="p-3 flex justify-center gap-3">
-                              <button onClick={() => handleEditTrek(trek)} className="p-1 text-gray-400 hover:text-forest-green" title="Edit">
+                              <button onClick={() => handleEditTrek(trek)} className="p-1 text-gray-400 hover:text-dark-charcoal" title="Edit">
                                 <Edit className="h-4 w-4" />
                               </button>
                               <button onClick={() => handleDuplicateTrek(trek.id)} className="p-1 text-gray-400 hover:text-sunrise-orange" title="Duplicate">
@@ -1001,7 +1003,7 @@ export default function AdminDashboardPage() {
             {activeTab === 'policies' && (
               <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6 animate-in fade-in duration-300">
                 <div className="flex justify-between items-center border-b border-gray-50 pb-3">
-                  <h3 className="text-base font-bold text-forest-green font-display">Trek Policies & Preparation CMS</h3>
+                  <h3 className="text-base font-bold text-dark-charcoal font-display">Trek Policies & Preparation CMS</h3>
                   {!showPolicyForm && (
                     <button
                       onClick={() => {
@@ -1035,7 +1037,7 @@ export default function AdminDashboardPage() {
                         setResponsibilityLetterPdf('');
                         setShowPolicyForm(true);
                       }}
-                      className="bg-forest-green text-white text-xs font-bold uppercase tracking-wider px-3.5 py-2 rounded-xl flex items-center gap-1"
+                      className="bg-primary-orange text-white text-xs font-bold uppercase tracking-wider px-3.5 py-2 rounded-xl flex items-center gap-1"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       Create Template
@@ -1046,7 +1048,7 @@ export default function AdminDashboardPage() {
                 {showPolicyForm ? (
                   /* Form configuration */
                   <form onSubmit={handleSavePolicy} className="space-y-6 border border-gray-150 p-5 rounded-2xl bg-gray-50 text-xs text-gray-600">
-                    <h4 className="text-sm font-bold text-forest-green border-b border-gray-100 pb-2">Policy Settings Details</h4>
+                    <h4 className="text-sm font-bold text-dark-charcoal border-b border-gray-100 pb-2">Policy Settings Details</h4>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -1075,7 +1077,7 @@ export default function AdminDashboardPage() {
 
                     {/* Section 1: Responsibility Letter */}
                     <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                      <h4 className="font-bold text-forest-green font-display border-b border-gray-50 pb-1.5">Participant Responsibility Letter</h4>
+                      <h4 className="font-bold text-dark-charcoal font-display border-b border-gray-50 pb-1.5">Participant Responsibility Letter</h4>
                       <input
                         type="text"
                         required
@@ -1130,7 +1132,7 @@ export default function AdminDashboardPage() {
 
                     {/* Section 2: Things to Carry (Interactive order) */}
                     <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                      <h4 className="font-bold text-forest-green font-display border-b border-gray-50 pb-1.5">Things to Carry Checklist</h4>
+                      <h4 className="font-bold text-dark-charcoal font-display border-b border-gray-50 pb-1.5">Things to Carry Checklist</h4>
                       <div className="flex gap-2">
                         <input
                           type="text"
@@ -1154,7 +1156,7 @@ export default function AdminDashboardPage() {
                             setCarryList([...carryList, { name: newCarryName, isRequired: newCarryRequired, icon: 'droplet', order: carryList.length + 1 }]);
                             setNewCarryName('');
                           }}
-                          className="bg-forest-green text-white px-3 py-1.5 rounded-lg font-bold"
+                          className="bg-primary-orange text-white px-3 py-1.5 rounded-lg font-bold"
                         >
                           Add
                         </button>
@@ -1166,10 +1168,10 @@ export default function AdminDashboardPage() {
                           <div key={idx} className="flex justify-between items-center bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-lg">
                             <span>{item.name} {item.isRequired ? '(Required)' : '(Optional)'}</span>
                             <div className="flex items-center gap-2">
-                              <button type="button" onClick={() => moveCarryItem(idx, 'up')} className="p-1 text-gray-400 hover:text-forest-green">
+                              <button type="button" onClick={() => moveCarryItem(idx, 'up')} className="p-1 text-gray-400 hover:text-dark-charcoal">
                                 <ArrowUp className="h-3.5 w-3.5" />
                               </button>
-                              <button type="button" onClick={() => moveCarryItem(idx, 'down')} className="p-1 text-gray-400 hover:text-forest-green">
+                              <button type="button" onClick={() => moveCarryItem(idx, 'down')} className="p-1 text-gray-400 hover:text-dark-charcoal">
                                 <ArrowDown className="h-3.5 w-3.5" />
                               </button>
                               <button
@@ -1187,7 +1189,7 @@ export default function AdminDashboardPage() {
 
                     {/* Section 3: Prohibited items */}
                     <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                      <h4 className="font-bold text-forest-green font-display border-b border-gray-50 pb-1.5">Things Not Allowed (Prohibited)</h4>
+                      <h4 className="font-bold text-dark-charcoal font-display border-b border-gray-50 pb-1.5">Things Not Allowed (Prohibited)</h4>
                       <div className="flex gap-2">
                         <input
                           type="text"
@@ -1203,7 +1205,7 @@ export default function AdminDashboardPage() {
                             setProhibitedList([...prohibitedList, newProhibited]);
                             setNewProhibited('');
                           }}
-                          className="bg-forest-green text-white px-3 py-1.5 rounded-lg font-bold"
+                          className="bg-primary-orange text-white px-3 py-1.5 rounded-lg font-bold"
                         >
                           Add
                         </button>
@@ -1220,7 +1222,7 @@ export default function AdminDashboardPage() {
 
                     {/* Section 4: Cancellation and Refund Rules */}
                     <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                      <h4 className="font-bold text-forest-green font-display border-b border-gray-50 pb-1.5">Cancellation & Refund Policies</h4>
+                      <h4 className="font-bold text-dark-charcoal font-display border-b border-gray-50 pb-1.5">Cancellation & Refund Policies</h4>
                       
                       <div className="flex gap-2">
                         <input
@@ -1237,7 +1239,7 @@ export default function AdminDashboardPage() {
                             setCancellationRules([...cancellationRules, newCancelRule]);
                             setNewCancelRule('');
                           }}
-                          className="bg-forest-green text-white px-3 py-1.5 rounded-lg font-bold"
+                          className="bg-primary-orange text-white px-3 py-1.5 rounded-lg font-bold"
                         >
                           Add
                         </button>
@@ -1276,7 +1278,7 @@ export default function AdminDashboardPage() {
 
                     {/* Section 5: Downloadable PDFs links */}
                     <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                      <h4 className="font-bold text-forest-green font-display border-b border-gray-50 pb-1.5">Downloadable Documents URLs</h4>
+                      <h4 className="font-bold text-dark-charcoal font-display border-b border-gray-50 pb-1.5">Downloadable Documents URLs</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <input
                           type="text"
@@ -1304,7 +1306,7 @@ export default function AdminDashboardPage() {
 
                     {/* Action buttons */}
                     <div className="flex gap-3">
-                      <button type="submit" className="bg-forest-green text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-md">
+                      <button type="submit" className="bg-primary-orange text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-md">
                         Save Policy
                       </button>
                       <button
@@ -1321,7 +1323,7 @@ export default function AdminDashboardPage() {
                   </form>
                 ) : loadingPolicies ? (
                   <div className="flex justify-center py-6">
-                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-forest-green" />
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-orange" />
                   </div>
                 ) : (
                   /* Policies Table */
@@ -1338,7 +1340,7 @@ export default function AdminDashboardPage() {
                       <tbody>
                         {policies.map((p) => (
                           <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50/50">
-                            <td className="p-3 font-semibold text-forest-green">{p.title}</td>
+                            <td className="p-3 font-semibold text-dark-charcoal">{p.title}</td>
                             <td className="p-3">
                               {p.isTemplate ? (
                                 <span className="bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded font-extrabold text-[9px] uppercase tracking-wider">
@@ -1354,7 +1356,7 @@ export default function AdminDashboardPage() {
                               {(p as any).events?.length || 0} Trek{((p as any).events?.length || 0) !== 1 ? 's' : ''}
                             </td>
                             <td className="p-3 flex justify-center gap-3">
-                              <button onClick={() => handleEditPolicy(p)} className="p-1 text-gray-400 hover:text-forest-green" title="Edit">
+                              <button onClick={() => handleEditPolicy(p)} className="p-1 text-gray-400 hover:text-dark-charcoal" title="Edit">
                                 <Edit className="h-4 w-4" />
                               </button>
                               <button onClick={() => handleDuplicatePolicy(p.id)} className="p-1 text-gray-400 hover:text-sunrise-orange" title="Duplicate">
@@ -1376,10 +1378,10 @@ export default function AdminDashboardPage() {
             {/* Review Approvals Tab */}
             {activeTab === 'reviews' && (
               <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6 animate-in fade-in duration-300">
-                <h3 className="text-base font-bold text-forest-green font-display border-b border-gray-50 pb-3">Pending Roster Reviews</h3>
+                <h3 className="text-base font-bold text-dark-charcoal font-display border-b border-gray-50 pb-3">Pending Roster Reviews</h3>
                 {loadingReviews ? (
                   <div className="flex justify-center py-6">
-                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-forest-green" />
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-orange" />
                   </div>
                 ) : pendingReviews.length === 0 ? (
                   <p className="text-xs text-gray-400 text-center py-6">No reviews pending approval.</p>
@@ -1388,7 +1390,7 @@ export default function AdminDashboardPage() {
                     {pendingReviews.map((rev) => (
                       <div key={rev.id} className="p-4 bg-gray-50 border border-gray-150 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="space-y-1">
-                          <p className="text-xs font-bold text-forest-green">{rev.user.name} reviewed <strong>{rev.event.title}</strong></p>
+                          <p className="text-xs font-bold text-dark-charcoal">{rev.user.name} reviewed <strong>{rev.event.title}</strong></p>
                           <p className="text-amber-500 text-xs">{'⭐'.repeat(rev.rating)}</p>
                           <p className="text-xs text-gray-600 mt-1 italic">"{rev.comment}"</p>
                         </div>
@@ -1411,10 +1413,10 @@ export default function AdminDashboardPage() {
             {activeTab === 'bookings' && (
               <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6 animate-in fade-in duration-300">
                 <div className="flex justify-between items-center border-b border-gray-50 pb-3">
-                  <h3 className="text-base font-bold text-forest-green font-display">Manage Bookings & Terms Auditing</h3>
+                  <h3 className="text-base font-bold text-dark-charcoal font-display">Manage Bookings & Terms Auditing</h3>
                   <button 
                     onClick={fetchBookingsList}
-                    className="text-xs text-forest-green hover:underline font-bold"
+                    className="text-xs text-dark-charcoal hover:underline font-bold"
                   >
                     Refresh List
                   </button>
@@ -1422,7 +1424,7 @@ export default function AdminDashboardPage() {
 
                 {loadingBookings ? (
                   <div className="flex justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-forest-green" />
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-orange" />
                   </div>
                 ) : bookings.length === 0 ? (
                   <p className="text-xs text-gray-400 text-center py-12">No bookings found in the system.</p>
@@ -1448,7 +1450,7 @@ export default function AdminDashboardPage() {
                               <p className="text-[10px] text-gray-400">{booking.user.email}</p>
                             </td>
                             <td className="p-3">
-                              <p className="font-bold text-forest-green">{booking.event.title}</p>
+                              <p className="font-bold text-dark-charcoal">{booking.event.title}</p>
                               <p className="text-[10px] text-gray-400">Date: {new Date(booking.event.startDate).toLocaleDateString()}</p>
                             </td>
                             <td className="p-3">
@@ -1514,7 +1516,7 @@ export default function AdminDashboardPage() {
             {/* Direct HQ Settings Tab */}
             {activeTab === 'settings' && (
               <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6 animate-in fade-in duration-300">
-                <h3 className="text-base font-bold text-forest-green font-display border-b border-gray-50 pb-3">Organization Settings</h3>
+                <h3 className="text-base font-bold text-dark-charcoal font-display border-b border-gray-50 pb-3">Organization Settings</h3>
                 {settingsSuccess && (
                   <div className="bg-emerald-50 border border-emerald-250 text-emerald-800 text-xs px-4 py-2.5 rounded-xl">
                     {settingsSuccess}
@@ -1530,7 +1532,7 @@ export default function AdminDashboardPage() {
                         required
                         value={orgName}
                         onChange={(e) => setOrgName(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs bg-white focus:outline-none focus:border-forest-green"
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs bg-white focus:outline-none focus:border-primary-orange"
                       />
                     </div>
                     <div>
@@ -1581,7 +1583,7 @@ export default function AdminDashboardPage() {
 
                   <button
                     type="submit"
-                    className="bg-forest-green hover:bg-emerald-800 text-white font-bold text-xs uppercase tracking-wider py-3 px-5 rounded-xl shadow-md transition-colors"
+                    className="bg-primary-orange hover:bg-orange-600 text-white font-bold text-xs uppercase tracking-wider py-3 px-5 rounded-xl shadow-md transition-colors"
                   >
                     Save Settings
                   </button>
@@ -1595,7 +1597,7 @@ export default function AdminDashboardPage() {
                 {/* Users List Card */}
                 <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-50 pb-3">
-                    <h3 className="text-base font-bold text-forest-green font-display">User Accounts Management</h3>
+                    <h3 className="text-base font-bold text-dark-charcoal font-display">User Accounts Management</h3>
                     
                     {/* User Search Bar */}
                     <div className="relative w-full sm:w-72">
@@ -1605,7 +1607,7 @@ export default function AdminDashboardPage() {
                         placeholder="Search name, email, phone..."
                         value={userSearch}
                         onChange={(e) => setUserSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-forest-green"
+                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-primary-orange"
                       />
                     </div>
                   </div>
@@ -1632,11 +1634,11 @@ export default function AdminDashboardPage() {
                           {adminUsers.map((u) => (
                             <tr key={u.id} className="hover:bg-gray-50/50">
                               <td className="py-3.5 pl-2 flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-forest-green/10 flex items-center justify-center font-bold text-forest-green text-xs overflow-hidden">
+                                <div className="h-8 w-8 rounded-full bg-primary-orange/10 flex items-center justify-center font-bold text-dark-charcoal text-xs overflow-hidden">
                                   {u.avatarUrl ? <img src={u.avatarUrl} alt="" className="h-full w-full object-cover" /> : u.name.charAt(0)}
                                 </div>
                                 <div>
-                                  <p className="font-bold text-forest-green">{u.name}</p>
+                                  <p className="font-bold text-dark-charcoal">{u.name}</p>
                                   <p className="text-[10px] text-gray-400">{u.email} | {u.phone || 'No phone'}</p>
                                 </div>
                               </td>
@@ -1665,7 +1667,7 @@ export default function AdminDashboardPage() {
                                   className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border transition-all ${
                                     u.isActive 
                                       ? 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200' 
-                                      : 'text-red-600 bg-red-50 border-red-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200'
+                                      : 'text-red-600 bg-red-50 border-red-200 hover:bg-orange-50 hover:text-emerald-700 hover:border-emerald-200'
                                   }`}
                                 >
                                   {u.isActive ? 'Active (Suspend)' : 'Suspended (Activate)'}
@@ -1695,7 +1697,7 @@ export default function AdminDashboardPage() {
 
                 {/* Audit Logs Console Card */}
                 <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
-                  <h3 className="text-base font-bold text-forest-green font-display border-b border-gray-50 pb-3 flex items-center gap-1.5">
+                  <h3 className="text-base font-bold text-dark-charcoal font-display border-b border-gray-50 pb-3 flex items-center gap-1.5">
                     <ShieldAlert className="h-5 w-5 text-orange-500" />
                     Security & Authentication Audit Logs
                   </h3>
@@ -1735,7 +1737,7 @@ export default function AdminDashboardPage() {
                                   {log.action}
                                 </span>
                               </td>
-                              <td className="py-2.5 text-forest-green font-semibold">
+                              <td className="py-2.5 text-dark-charcoal font-semibold">
                                 {log.user ? `${log.user.name} (${log.user.role})` : 'Anonymous'}
                               </td>
                               <td className="py-2.5 text-gray-600 font-sans max-w-xs truncate" title={log.details}>
@@ -1760,7 +1762,7 @@ export default function AdminDashboardPage() {
                 <div className="bg-white rounded-3xl max-w-lg w-full border border-gray-100 shadow-2xl p-6 space-y-6">
                   <div className="flex justify-between items-center border-b border-gray-100 pb-3">
                     <div>
-                      <h3 className="text-base font-bold text-forest-green font-display">Active Sessions: {selectedUserName}</h3>
+                      <h3 className="text-base font-bold text-dark-charcoal font-display">Active Sessions: {selectedUserName}</h3>
                       <p className="text-[10px] text-gray-400 mt-0.5">Revoke active sessions to immediately force logouts on user devices.</p>
                     </div>
                     <button 
@@ -1778,7 +1780,7 @@ export default function AdminDashboardPage() {
                       selectedUserSessions.map((s) => (
                         <div key={s.id} className="bg-gray-50 p-3.5 rounded-xl border border-gray-150 flex items-center justify-between gap-3 text-xs">
                           <div>
-                            <p className="font-bold text-forest-green max-w-[280px] truncate">{s.deviceInfo}</p>
+                            <p className="font-bold text-dark-charcoal max-w-[280px] truncate">{s.deviceInfo}</p>
                             <p className="text-[10px] text-gray-400 mt-0.5">
                               IP: {s.ipAddress} | Logged: {new Date(s.createdAt).toLocaleString()}
                             </p>

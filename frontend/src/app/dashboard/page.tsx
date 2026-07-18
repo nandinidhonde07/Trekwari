@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -8,10 +9,14 @@ import WhatsAppWidget from '../../components/WhatsAppWidget';
 import { useAuth } from '../../hooks/useAuth';
 import { api } from '../../lib/api';
 import { 
-  User as UserIcon, Calendar, Compass, ShieldAlert, Award, FileText, 
-  Settings as SettingsIcon, LogOut, Phone, Shield, Upload, Trash2, 
-  MapPin, Heart, Activity, AlertCircle, CheckCircle2, ChevronRight, Laptop, Mail
+  User as UserIcon, Calendar, Compass, Award, 
+  Settings as SettingsIcon, LogOut, Phone, Shield, Upload, 
+  MapPin, AlertCircle, CheckCircle2, ChevronRight, Laptop, Mail
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Skeleton } from '../../components/ui/skeleton';
+import { EmptyState } from '../../components/ui/empty-state';
+import { useToast } from '../../components/ui/toast';
 
 interface BookingData {
   id: string;
@@ -46,8 +51,9 @@ interface SessionData {
 export default function UserDashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading, logout, logoutAll, refreshUser, updateUserLocal, uploadAvatar } = useAuth();
+  const { toast } = useToast();
   
-  const [activeSubTab, setActiveSubTab] = useState('bookings'); // bookings, profile, sessions
+  const [activeSubTab, setActiveSubTab] = useState('bookings');
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
 
@@ -73,7 +79,6 @@ export default function UserDashboardPage() {
   const [profileSuccess, setProfileSuccess] = useState('');
   const [profileError, setProfileError] = useState('');
 
-  // Profile Upload Avatar States
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState('');
@@ -145,8 +150,11 @@ export default function UserDashboardPage() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-600" />
+      <div className="min-h-screen bg-white flex justify-center items-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-orange" />
+          <span className="text-xs uppercase font-extrabold tracking-widest text-gray-400">Loading Dashboard...</span>
+        </div>
       </div>
     );
   }
@@ -195,12 +203,10 @@ export default function UserDashboardPage() {
     }
   };
 
-  // Cloudinary Avatar Upload triggers
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Verify limit 5MB
     if (file.size > 5 * 1024 * 1024) {
       setPhotoError('Image size must be smaller than 5MB.');
       return;
@@ -218,7 +224,7 @@ export default function UserDashboardPage() {
         setProfileSuccess('Profile picture updated successfully!');
         refreshUser();
       } catch (err: any) {
-        setPhotoError(err.message || 'Failed to upload image to Cloudinary.');
+        setPhotoError(err.message || 'Failed to upload image.');
       } finally {
         setIsUploadingPhoto(false);
       }
@@ -229,7 +235,6 @@ export default function UserDashboardPage() {
     if (!confirm('Are you sure you want to log out of this device?')) return;
     try {
       await api.auth.revokeSession(sessionId);
-      // Refresh list
       loadSessionsList();
     } catch (err) {
       console.error('Revoke session error:', err);
@@ -260,34 +265,38 @@ export default function UserDashboardPage() {
   };
 
   const getBadgeName = (level: string) => {
-    return level.replace(/_/g, ' ');
+    return level.split('_').join(' ');
   };
 
-  // Sort Bookings
-  const activeBookings = bookings.filter(b => b.paymentStatus === 'PAID' && new Date(b.event.startDate) > new Date() && b.event.status !== 'CANCELLED');
-  const completedBookings = bookings.filter(b => b.event.status === 'COMPLETED');
+  const activeBookings = bookings.filter(function(b) {
+    return b.paymentStatus === 'PAID' && new Date(b.event.startDate) > new Date() && b.event.status !== 'CANCELLED';
+  });
+  const completedBookings = bookings.filter(function(b) {
+    return b.event.status === 'COMPLETED';
+  });
 
   return (
-    <main className="min-h-screen relative bg-gray-50">
+    <div className="min-h-screen relative bg-white font-sans">
       <Navbar />
       <WhatsAppWidget />
 
-      {/* Header */}
-      <section className="pt-28 pb-16 bg-forest-green text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]" />
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            {/* Avatar section with hover upload */}
+      {/* Header Profile Dashboard */}
+      <section className="pt-32 pb-16 bg-white text-dark-charcoal border-b border-gray-150 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.02] bg-[radial-gradient(#000000_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+            
+            {/* Avatar block with upload trigger */}
             <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-              <div className="h-20 w-20 rounded-full border-2 border-orange-500 overflow-hidden bg-emerald-950 flex items-center justify-center font-bold text-white text-3xl">
+              <div className="h-20 w-20 rounded-full border-2 border-primary-orange overflow-hidden bg-gray-50 flex items-center justify-center font-bold text-dark-charcoal text-3xl shadow-sm">
                 {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="Hiker profile photo" className="h-full w-full object-cover" />
+                  <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
                   user.name.charAt(0)
                 )}
               </div>
-              <div className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-[10px] text-white font-bold transition-all">
-                <Upload className="h-4 w-4 text-orange-500 mb-0.5" />
+              <div className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-[9px] uppercase tracking-wider text-white font-bold transition-all">
+                <Upload className="h-4 w-4 text-primary-orange mb-1" />
                 <span>Upload</span>
               </div>
               <input 
@@ -299,503 +308,452 @@ export default function UserDashboardPage() {
               />
             </div>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-extrabold font-display">{user.name}</h1>
-                <span className="bg-orange-500 text-white font-extrabold text-[8px] uppercase px-2 py-0.5 rounded-full tracking-wider mt-1.5">
+            <div className="space-y-1.5">
+              <div className="flex flex-col sm:flex-row items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-dark-charcoal">{user.name}</h1>
+                <span className="bg-primary-orange text-white font-extrabold text-[8px] uppercase px-2.5 py-0.5 rounded-full tracking-widest mt-1.5 sm:mt-0 shadow-sm">
                   {getBadgeIcon(user.badgeLevel)} {getBadgeName(user.badgeLevel)}
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-emerald-100/70">
-                <p className="flex items-center gap-1"><Mail className="h-3.5 w-3.5 text-orange-500" /> {user.email}</p>
-                {user.phone && <p className="flex items-center gap-1"><Phone className="h-3.5 w-3.5 text-orange-500" /> {user.phone}</p>}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1.5 text-xs text-gray-500 font-semibold">
+                <p className="flex items-center gap-1.5"><Mail className="h-4 w-4 text-primary-orange" /> {user.email}</p>
+                {user.phone && <p className="flex items-center gap-1.5"><Phone className="h-4 w-4 text-primary-orange" /> {user.phone}</p>}
                 
-                {/* Email Verification status flag */}
                 {user.emailVerified ? (
-                  <span className="text-[10px] font-bold text-orange-500 bg-orange-500/10 px-2.5 py-0.5 rounded-full border border-orange-500/20">
-                    Email Verified
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-primary-orange bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-100">
+                    Verified
                   </span>
                 ) : (
-                  <span className="text-[10px] font-bold text-red-400 bg-red-400/10 px-2.5 py-0.5 rounded-full border border-red-400/20">
-                    Email Unverified
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-red-500 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-100">
+                    Unverified
                   </span>
                 )}
               </div>
-              {photoError && <p className="text-[10px] text-red-300 mt-2">{photoError}</p>}
-              {isUploadingPhoto && <p className="text-[10px] text-orange-400 mt-2 animate-pulse">Uploading profile picture...</p>}
+              {photoError && <p className="text-[10px] text-red-500 font-semibold">{photoError}</p>}
+              {isUploadingPhoto && <p className="text-[10px] text-primary-orange font-semibold animate-pulse">Uploading photo...</p>}
             </div>
           </div>
 
-          <div className="flex gap-6 text-center">
-            <div className="bg-emerald-950/40 px-5 py-3 rounded-2xl border border-emerald-800">
-              <p className="text-xl font-extrabold text-orange-500">{user.rewardPoints}</p>
-              <p className="text-[10px] text-emerald-200/60 uppercase font-bold tracking-wider mt-0.5">Reward Points</p>
+          <div className="flex gap-4">
+            <div className="bg-gray-50 px-6 py-4 rounded-[20px] border border-gray-150 text-center shadow-sm">
+              <p className="text-2xl font-black text-primary-orange font-display">{user.rewardPoints}</p>
+              <p className="text-[8px] text-gray-400 uppercase font-extrabold tracking-widest mt-1">Reward Points</p>
             </div>
-            <div className="bg-emerald-950/40 px-5 py-3 rounded-2xl border border-emerald-800">
-              <p className="text-xl font-extrabold text-orange-500">{bookings.length}</p>
-              <p className="text-[10px] text-emerald-200/60 uppercase font-bold tracking-wider mt-0.5">Total Treks</p>
+            <div className="bg-gray-50 px-6 py-4 rounded-[20px] border border-gray-150 text-center shadow-sm">
+              <p className="text-2xl font-black text-primary-orange font-display">{bookings.length}</p>
+              <p className="text-[8px] text-gray-400 uppercase font-extrabold tracking-widest mt-1">Total Treks</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Dashboard Contents */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {/* Dashboard Section */}
+      <section className="max-w-7xl mx-auto px-6 sm:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* Sidebar Tabs */}
-          <div className="lg:col-span-1 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm h-fit space-y-2">
-            <button
-              onClick={() => setActiveSubTab('bookings')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-left text-xs uppercase font-bold tracking-wider transition-colors ${
-                activeSubTab === 'bookings' 
-                  ? 'bg-forest-green text-white' 
-                  : 'text-gray-400 hover:bg-gray-50 hover:text-forest-green'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Compass className="h-4 w-4" />
-                My Bookings & History
-              </span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+          {/* Left Navigation Tabs (3 cols) */}
+          <div className="lg:col-span-3 bg-white p-6 rounded-[20px] border border-gray-100 shadow-sm h-fit space-y-1.5">
+            {[
+              { id: 'bookings', label: 'My Bookings & History', icon: <Compass className="h-4 w-4" /> },
+              { id: 'profile', label: 'Hiker Profile Settings', icon: <SettingsIcon className="h-4 w-4" /> },
+              { id: 'sessions', label: 'Active Device Sessions', icon: <Laptop className="h-4 w-4" /> }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveSubTab(tab.id);
+                  setProfileSuccess('');
+                  setProfileError('');
+                }}
+                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-left text-xs uppercase font-extrabold tracking-widest transition-all cursor-pointer ${
+                  activeSubTab === tab.id 
+                    ? 'bg-primary-orange text-white shadow-md shadow-orange-500/10' 
+                    : 'text-gray-400 hover:bg-gray-50 hover:text-dark-charcoal'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  {tab.icon}
+                  {tab.label}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5 opacity-60" />
+              </button>
+            ))}
 
-            <button
-              onClick={() => setActiveSubTab('profile')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-left text-xs uppercase font-bold tracking-wider transition-colors ${
-                activeSubTab === 'profile' 
-                  ? 'bg-forest-green text-white' 
-                  : 'text-gray-400 hover:bg-gray-50 hover:text-forest-green'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <SettingsIcon className="h-4 w-4" />
-                Hiker Profile Settings
-              </span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab('sessions')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-left text-xs uppercase font-bold tracking-wider transition-colors ${
-                activeSubTab === 'sessions' 
-                  ? 'bg-forest-green text-white' 
-                  : 'text-gray-400 hover:bg-gray-50 hover:text-forest-green'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Laptop className="h-4 w-4" />
-                Active Device Sessions
-              </span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-
-            <hr className="border-gray-100 my-2" />
+            <hr className="border-gray-100 my-4" />
 
             <button
               onClick={() => {
                 logout();
                 router.push('/');
               }}
-              className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-left text-xs uppercase font-bold tracking-wider text-red-600 hover:bg-red-50 transition-colors"
+              className="w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-left text-xs uppercase font-extrabold tracking-widest text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
               Sign Out
             </button>
           </div>
 
-          {/* Main Area */}
-          <div className="lg:col-span-3">
-            
-            {/* Bookings Tab */}
-            {activeSubTab === 'bookings' && (
-              <div className="space-y-6">
+          {/* Right Content Tab Container (9 cols) */}
+          <div className="lg:col-span-9">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeSubTab}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.3 }}
+              >
                 
-                {/* Active Bookings */}
-                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
-                  <h3 className="text-lg font-bold text-forest-green font-display border-b border-gray-50 pb-3 flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-orange-500" />
-                    Upcoming Expeditions
-                  </h3>
-                  
-                  {loadingBookings ? (
-                    <div className="flex justify-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-600" />
-                    </div>
-                  ) : activeBookings.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <Compass className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-                      <p className="text-xs">You have no upcoming treks booked. Ready for a new adventure?</p>
-                      <a href="/treks" className="mt-3 inline-block bg-orange-600 text-white text-[10px] uppercase font-bold tracking-wider px-5 py-2.5 rounded-full">Explore Treks</a>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {activeBookings.map((booking) => (
-                        <div 
-                          key={booking.id}
-                          className="bg-gray-50 border border-gray-150 p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-orange-500/30 transition-colors"
-                        >
-                          <div className="space-y-1">
-                            <span className="text-[10px] uppercase font-bold text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded">
-                              {booking.event.status}
-                            </span>
-                            <h4 className="text-base font-bold text-forest-green font-display">{booking.event.title}</h4>
-                            <p className="text-xs text-gray-400">
-                              Date: {new Date(booking.event.startDate).toLocaleDateString()} | Booking ID: {booking.bookingId} | Seats: {booking.seatCount}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => alert(`Ticket PDF: ${booking.bookingId}`)}
-                            className="bg-forest-green hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl flex items-center gap-1 justify-center self-stretch sm:self-auto"
-                          >
-                            <FileText className="h-3.5 w-3.5" />
-                            Download Ticket
-                          </button>
+                {/* 1. Bookings & History Tab */}
+                {activeSubTab === 'bookings' && (
+                  <div className="space-y-12">
+                    
+                    {/* Active bookings */}
+                    <div className="space-y-5">
+                      <h3 className="text-lg font-bold text-dark-charcoal font-display">Active Bookings</h3>
+                      {loadingBookings ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {[1, 2].map((n) => <Skeleton key={n} className="h-32 rounded-[20px]" />)}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Trek History (Completed) */}
-                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
-                  <h3 className="text-lg font-bold text-forest-green font-display border-b border-gray-50 pb-3 flex items-center gap-2">
-                    <Award className="h-5 w-5 text-orange-500" />
-                    Completed Summits (Trek History)
-                  </h3>
-                  
-                  {loadingBookings ? (
-                    <div className="flex justify-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-600" />
-                    </div>
-                  ) : completedBookings.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <Award className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-                      <p className="text-xs">No completed summits recorded. Finish a trek to earn certificate!</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {completedBookings.map((booking) => (
-                        <div 
-                          key={booking.id}
-                          className="bg-gray-50 border border-gray-150 p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-                        >
-                          <div className="space-y-1">
-                            <span className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-100/60 px-2 py-0.5 rounded">
-                              Summited
-                            </span>
-                            <h4 className="text-base font-bold text-forest-green font-display">{booking.event.title}</h4>
-                            <p className="text-xs text-gray-400">
-                              Completed: {new Date(booking.event.startDate).toLocaleDateString()} | Booking ID: {booking.bookingId}
-                            </p>
-                          </div>
-
-                          <div className="flex gap-2 w-full sm:w-auto">
-                            {booking.certificate?.pdfUrl ? (
-                              <a
-                                href={booking.certificate.pdfUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl flex items-center gap-1.5 justify-center flex-1 sm:flex-none"
-                              >
-                                <Award className="h-3.5 w-3.5" />
-                                Certificate
-                              </a>
-                            ) : (
-                              <button
-                                onClick={() => alert('Participation Certificate download initiated.')}
-                                className="bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl flex items-center gap-1.5 justify-center flex-1 sm:flex-none"
-                              >
-                                <Award className="h-3.5 w-3.5" />
-                                Certificate
-                              </button>
-                            )}
-                          </div>
+                      ) : activeBookings.length === 0 ? (
+                        <EmptyState 
+                          title="No Active Bookings"
+                          description="You don't have any upcoming departures booked. Browse our open registrations and catch the next summit run!"
+                          actionLabel="Browse Treks"
+                          onAction={() => router.push('/treks')}
+                        />
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {activeBookings.map((b) => (
+                            <div key={b.id} className="bg-white p-6 rounded-[20px] border border-gray-150 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-primary-orange/20 transition-all duration-300">
+                              <div className="space-y-3.5">
+                                <div className="flex justify-between items-start">
+                                  <span className="text-[8px] uppercase tracking-widest font-extrabold text-primary-orange bg-orange-50 px-2.5 py-1 rounded-[8px]">
+                                    {b.bookingId}
+                                  </span>
+                                  <span className="text-[8px] uppercase tracking-widest font-extrabold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-[8px]">
+                                    Paid
+                                  </span>
+                                </div>
+                                <h4 className="text-base font-bold text-dark-charcoal font-display leading-tight">{b.event.title}</h4>
+                                <div className="space-y-1.5 text-xs text-gray-500 font-semibold">
+                                  <p className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-primary-orange" /> {b.event.location}</p>
+                                  <p className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-primary-orange" /> {new Date(b.event.startDate).toLocaleDateString()}</p>
+                                  <p className="flex items-center gap-1.5"><UserIcon className="h-4 w-4 text-primary-orange" /> {b.seatCount} Seat{b.seatCount > 1 ? 's' : ''}</p>
+                                </div>
+                              </div>
+                              <div className="pt-4 border-t border-gray-50 mt-4 flex items-center justify-between">
+                                <Link 
+                                  href={`/treks/${b.event.slug}`}
+                                  className="text-xs font-bold text-primary-orange hover:underline uppercase tracking-wider"
+                                >
+                                  View Details
+                                </Link>
+                                <button 
+                                  onClick={() => toast(`Downloading Ticket PDF for ID: ${b.bookingId}...`, 'success')}
+                                  className="bg-primary-orange hover:bg-orange-600 text-white font-bold text-[10px] uppercase tracking-wider px-4 py-2 rounded-xl shadow-sm transition-colors cursor-pointer"
+                                >
+                                  Ticket PDF
+                                </button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
 
-            {/* Profile Tab */}
-            {activeSubTab === 'profile' && (
-              <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
-                <div>
-                  <h3 className="text-lg font-bold text-forest-green font-display border-b border-gray-50 pb-3 flex items-center gap-2">
-                    <UserIcon className="h-5 w-5 text-orange-500" />
-                    Hiker Details & Emergency Medicals
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-1">Please populate these fields. This is utilized for medical preparedness, rescue operations, and custom certificate logs.</p>
-                </div>
+                    {/* History */}
+                    <div className="space-y-5">
+                      <h3 className="text-lg font-bold text-dark-charcoal font-display">Trek History & Certificates</h3>
+                      {loadingBookings ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {[1, 2].map((n) => <Skeleton key={n} className="h-32 rounded-[20px]" />)}
+                        </div>
+                      ) : completedBookings.length === 0 ? (
+                        <p className="text-xs text-gray-400 bg-gray-50 p-6 rounded-[20px] text-center font-semibold">No completed treks recorded in your profile yet.</p>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {completedBookings.map((b) => (
+                            <div key={b.id} className="bg-gray-50 p-6 rounded-[20px] border border-gray-100 flex flex-col justify-between shadow-sm">
+                              <div className="space-y-3">
+                                <span className="text-[8px] uppercase tracking-widest font-extrabold text-gray-400 bg-white border border-gray-200 px-2.5 py-1 rounded-[8px]">
+                                  {b.bookingId}
+                                </span>
+                                <h4 className="text-base font-bold text-dark-charcoal font-display leading-tight">{b.event.title}</h4>
+                                <div className="space-y-1 text-xs text-gray-500 font-semibold">
+                                  <p className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-gray-400" /> Completed: {new Date(b.event.startDate).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                              <div className="pt-4 border-t border-gray-150/60 mt-4 flex items-center justify-between">
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1">
+                                  <Award className="h-4 w-4 text-primary-orange" /> Certificate Issued
+                                </span>
+                                <button 
+                                  onClick={() => toast(`Downloading certificate for event: ${b.event.title}...`, 'success')}
+                                  className="bg-dark-charcoal text-white hover:bg-black font-bold text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl transition-colors cursor-pointer"
+                                >
+                                  Download PDF
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-                {profileSuccess && (
-                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2.5 rounded-xl">
-                    {profileSuccess}
-                  </div>
-                )}
-                {profileError && (
-                  <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-2.5 rounded-xl">
-                    {profileError}
                   </div>
                 )}
 
-                <form onSubmit={handleProfileUpdate} className="space-y-6">
-                  {/* General Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Full Display Name</label>
-                      <input
-                        type="text"
-                        required
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Mobile Number (E.164)</label>
-                      <input
-                        type="text"
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="e.g. +91 9322340365"
-                        className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Date of Birth</label>
-                      <input
-                        type="date"
-                        value={dateOfBirth}
-                        onChange={(e) => setDateOfBirth(e.target.value)}
-                        className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-orange-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Gender</label>
-                      <select
-                        value={gender}
-                        onChange={(e) => setGender(e.target.value)}
-                        className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs bg-white focus:outline-none"
-                      >
-                        <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                  </div>
+                {/* 2. Profile Settings Tab */}
+                {activeSubTab === 'profile' && (
+                  <form onSubmit={handleProfileUpdate} className="space-y-6 bg-white border border-gray-150 p-8 rounded-[20px] shadow-sm">
+                    <h3 className="text-lg font-bold text-dark-charcoal font-display border-b border-gray-50 pb-3">Hiker Profile Details</h3>
+                    
+                    {profileSuccess && (
+                      <div className="bg-emerald-50 border border-emerald-250 text-emerald-800 text-xs px-4 py-3 rounded-xl font-bold">
+                        ✔ {profileSuccess}
+                      </div>
+                    )}
+                    {profileError && (
+                      <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded-xl">
+                        {profileError}
+                      </div>
+                    )}
 
-                  {/* Medical Details */}
-                  <div className="border-t border-gray-50 pt-5">
-                    <h4 className="text-xs font-extrabold text-orange-500 uppercase tracking-wider mb-4 flex items-center gap-1.5"><Heart className="h-4 w-4" /> Medical Diagnostics</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Blood Group</label>
+                        <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-orange focus:ring-1 focus:ring-primary-orange font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Phone Number</label>
+                        <input
+                          type="text"
+                          required
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-orange focus:ring-1 focus:ring-primary-orange font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Gender</label>
                         <select
-                          value={bloodGroup}
-                          onChange={(e) => setBloodGroup(e.target.value)}
-                          className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs bg-white focus:outline-none"
+                          value={gender}
+                          onChange={(e) => setGender(e.target.value)}
+                          className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs focus:outline-none focus:border-primary-orange font-semibold"
                         >
-                          <option value="">Select Blood Group</option>
-                          <option value="A+">A+</option>
-                          <option value="A-">A-</option>
-                          <option value="B+">B+</option>
-                          <option value="B-">B-</option>
-                          <option value="O+">O+</option>
-                          <option value="O-">O-</option>
-                          <option value="AB+">AB+</option>
-                          <option value="AB-">AB-</option>
+                          <option value="">Select Gender</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-50">
+                      <div>
+                        <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Date of Birth</label>
+                        <input
+                          type="date"
+                          value={dateOfBirth}
+                          onChange={(e) => setDateOfBirth(e.target.value)}
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Trek Experience</label>
+                        <select
+                          value={trekExperience}
+                          onChange={(e) => setTrekExperience(e.target.value)}
+                          className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                        >
+                          <option value="Beginner">Beginner Explorer</option>
+                          <option value="Intermediate">Intermediate Climber</option>
+                          <option value="Advanced">Advanced Summit Hiker</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Drug / Food Allergies</label>
+                        <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Fitness Level</label>
+                        <select
+                          value={fitnessLevel}
+                          onChange={(e) => setFitnessLevel(e.target.value)}
+                          className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                        >
+                          <option value="Poor">Poor Stamina</option>
+                          <option value="Average">Average Walking</option>
+                          <option value="Good">Good Athletics</option>
+                          <option value="Excellent">Excellent Mountain Endurance</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="p-5 bg-gray-50 rounded-[20px] border border-gray-100 space-y-4 pt-4">
+                      <p className="text-xs font-extrabold text-primary-orange uppercase tracking-wider">Mandatory SOS Contacts</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                          <label className="block text-[9px] font-extrabold text-gray-450 uppercase tracking-widest mb-1.5">Emergency Name</label>
+                          <input
+                            type="text"
+                            value={emergencyContact}
+                            onChange={(e) => setEmergencyContact(e.target.value)}
+                            placeholder="Full Name"
+                            className="w-full border border-gray-250 bg-white rounded-xl px-4 py-3 text-xs focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-extrabold text-gray-455 uppercase tracking-widest mb-1.5">SOS Phone Number</label>
+                          <input
+                            type="tel"
+                            value={emergencyPhone}
+                            onChange={(e) => setEmergencyPhone(e.target.value)}
+                            placeholder="Mobile number"
+                            className="w-full border border-gray-250 bg-white rounded-xl px-4 py-3 text-xs focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-extrabold text-gray-455 uppercase tracking-widest mb-1.5">Relationship</label>
+                          <input
+                            type="text"
+                            value={emergencyRelationship}
+                            onChange={(e) => setEmergencyRelationship(e.target.value)}
+                            placeholder="e.g. Father, Spouse"
+                            className="w-full border border-gray-250 bg-white rounded-xl px-4 py-3 text-xs focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-50">
+                      <div>
+                        <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Blood Group</label>
+                        <select
+                          value={bloodGroup}
+                          onChange={(e) => setBloodGroup(e.target.value)}
+                          className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                        >
+                          <option value="">Choose Blood Group</option>
+                          {['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'].map(bg => (
+                            <option key={bg} value={bg}>{bg}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Allergies / Medical Flags</label>
                         <input
                           type="text"
                           value={allergies}
                           onChange={(e) => setAllergies(e.target.value)}
-                          placeholder="e.g. Dust, Penicillin, Peanuts (leave blank if none)"
-                          className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Important Medical Conditions / Chronic Illness</label>
-                        <textarea
-                          rows={2}
-                          value={medicalNotes}
-                          onChange={(e) => setMedicalNotes(e.target.value)}
-                          placeholder="e.g. Asthma, High Blood Pressure, Cardiac history, Knee surgeries (or leave blank)"
-                          className="w-full border border-gray-250 rounded-xl p-3 text-xs focus:outline-none"
+                          placeholder="e.g. Asthma, Penicillin, Dust allergy"
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-orange font-semibold"
                         />
                       </div>
                     </div>
-                  </div>
 
-                  {/* Emergency Contact */}
-                  <div className="border-t border-gray-50 pt-5">
-                    <h4 className="text-xs font-extrabold text-orange-500 uppercase tracking-wider mb-4 flex items-center gap-1.5"><Shield className="h-4 w-4" /> Emergency Contact</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Contact Name</label>
-                        <input
-                          type="text"
-                          value={emergencyContact}
-                          onChange={(e) => setEmergencyContact(e.target.value)}
-                          placeholder="e.g. Sunita Shinde"
-                          className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Contact Mobile</label>
-                        <input
-                          type="text"
-                          value={emergencyPhone}
-                          onChange={(e) => setEmergencyPhone(e.target.value)}
-                          placeholder="e.g. +91 9999988888"
-                          className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Relationship</label>
-                        <input
-                          type="text"
-                          value={emergencyRelationship}
-                          onChange={(e) => setEmergencyRelationship(e.target.value)}
-                          placeholder="e.g. Mother / Father"
-                          className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Experience & Address */}
-                  <div className="border-t border-gray-50 pt-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Trek Experience Level</label>
-                        <select
-                          value={trekExperience}
-                          onChange={(e) => setTrekExperience(e.target.value)}
-                          className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs bg-white focus:outline-none"
-                        >
-                          <option value="Beginner">Beginner (0-2 treks completed)</option>
-                          <option value="Intermediate">Intermediate (3-8 treks completed)</option>
-                          <option value="Advanced">Advanced (8+ treks completed)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Current Fitness Level</label>
-                        <select
-                          value={fitnessLevel}
-                          onChange={(e) => setFitnessLevel(e.target.value)}
-                          className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs bg-white focus:outline-none"
-                        >
-                          <option value="Poor">Poor (Cannot walk continuously for 30 mins)</option>
-                          <option value="Average">Average (Reasonable, walks regularly)</option>
-                          <option value="Good">Good (Exercises/jogs 3 times a week)</option>
-                          <option value="Excellent">Excellent (Marathoner, highly active)</option>
-                        </select>
-                      </div>
-                    </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Residential Address (Optional)</label>
+                      <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Medical Notes & Warnings</label>
+                      <textarea
+                        rows={2}
+                        value={medicalNotes}
+                        onChange={(e) => setMedicalNotes(e.target.value)}
+                        placeholder="Detail any critical health histories, surgeries, or notes..."
+                        className="w-full border border-gray-250 rounded-xl p-4 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Address Details</label>
                       <input
                         type="text"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
-                        placeholder="House no., Street, Area, City, Pin Code"
-                        className="w-full border border-gray-250 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
+                        placeholder="Street address, City, Pincode"
+                        className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-orange font-semibold"
                       />
                     </div>
-                  </div>
 
-                  <button
-                    type="submit"
-                    className="bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs uppercase tracking-wider py-3.5 px-8 rounded-xl transition-all shadow-md"
-                  >
-                    Save Hiker Profile
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* Sessions Tab */}
-            {activeSubTab === 'sessions' && (
-              <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-50 pb-3">
-                  <div>
-                    <h3 className="text-lg font-bold text-forest-green font-display flex items-center gap-2">
-                      <Laptop className="h-5 w-5 text-orange-500" />
-                      Active Device Sessions
-                    </h3>
-                    <p className="text-xs text-gray-400 mt-1">Review active browser logins. You can revoke older sessions on lost devices to maintain account integrity.</p>
-                  </div>
-                  
-                  <button
-                    onClick={handleLogoutAllDevices}
-                    className="text-[10px] font-bold text-red-600 border border-red-200 hover:bg-red-50 uppercase tracking-wider px-4 py-2 rounded-xl"
-                  >
-                    Revoke All Sessions
-                  </button>
-                </div>
-
-                {loadingSessions ? (
-                  <div className="flex justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-600" />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {sessions.map((s) => (
-                      <div 
-                        key={s.id}
-                        className={`p-4 border rounded-2xl flex items-center justify-between gap-4 transition-colors ${
-                          s.isCurrent ? 'bg-orange-50/20 border-orange-100' : 'bg-gray-50 border-gray-150'
-                        }`}
+                    <div className="pt-4 flex justify-end">
+                      <button
+                        type="submit"
+                        className="bg-primary-orange hover:bg-orange-600 text-white font-bold text-xs uppercase tracking-widest px-8 py-4 rounded-button shadow-md cursor-pointer transition-colors"
                       >
-                        <div className="flex items-start gap-3">
-                          <div className={`p-2.5 rounded-xl ${s.isCurrent ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                            <Laptop className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs font-bold text-forest-green max-w-[200px] sm:max-w-md truncate">{s.deviceInfo}</p>
-                              {s.isCurrent && (
-                                <span className="bg-orange-500 text-white text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded">
-                                  Current Device
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-gray-400 mt-0.5">
-                              IP Address: {s.ipAddress} | Logged In: {new Date(s.createdAt).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
+                        Save Profile Updates
+                      </button>
+                    </div>
+                  </form>
+                )}
 
-                        {!s.isCurrent && (
-                          <button
-                            onClick={() => handleRevokeSession(s.id)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                            title="Revoke session"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
+                {/* 3. Active Device Sessions Tab */}
+                {activeSubTab === 'sessions' && (
+                  <div className="space-y-6 bg-white border border-gray-150 p-8 rounded-[20px] shadow-sm">
+                    <div className="flex justify-between items-center border-b border-gray-50 pb-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-dark-charcoal font-display">Active Devices</h3>
+                        <p className="text-[10px] text-gray-400 font-semibold mt-0.5">Revoke sessions to protect your security credentials.</p>
                       </div>
-                    ))}
+                      {sessions.length > 1 && (
+                        <button
+                          onClick={handleLogoutAllDevices}
+                          className="bg-red-50 text-red-600 hover:bg-red-100 font-extrabold text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl border border-red-200 transition-colors cursor-pointer"
+                        >
+                          Logout All Devices
+                        </button>
+                      )}
+                    </div>
+
+                    {loadingSessions ? (
+                      <div className="space-y-3">
+                        {[1, 2].map(n => <Skeleton key={n} className="h-20 rounded-xl" />)}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {sessions.map((session) => (
+                          <div key={session.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 shadow-sm">
+                                <Laptop className="h-5 w-5" />
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-xs font-bold text-dark-charcoal flex items-center gap-2">
+                                  {session.deviceInfo}
+                                  {session.isCurrent && (
+                                    <span className="bg-orange-50 text-primary-orange text-[8px] font-extrabold uppercase px-2 py-0.5 rounded border border-orange-100">
+                                      Active now
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-[10px] text-gray-450 font-semibold">IP: {session.ipAddress} | Created: {new Date(session.createdAt).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            
+                            {!session.isCurrent && (
+                              <button
+                                onClick={() => handleRevokeSession(session.id)}
+                                className="text-xs font-bold text-red-600 hover:underline uppercase tracking-wider cursor-pointer"
+                              >
+                                Revoke
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
+              </motion.div>
+            </AnimatePresence>
           </div>
 
         </div>
       </section>
 
       <Footer />
-    </main>
+    </div>
   );
 }

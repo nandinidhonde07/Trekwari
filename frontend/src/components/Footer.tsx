@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { api } from '../lib/api';
 import Logo from './Logo';
 import { Mail, Phone, MapPin, Instagram, Youtube, Facebook, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface SettingsData {
   organizationName: string;
@@ -62,95 +63,101 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-gray-950 text-gray-400 pt-16 pb-8 border-t border-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className="bg-dark-charcoal text-gray-400 relative overflow-hidden pt-24 pb-8 border-t border-white/5">
+      
+      {/* Mountain Silhouette SVG Background Decoration */}
+      <div className="absolute top-0 left-0 right-0 h-16 pointer-events-none opacity-[0.03]">
+        <svg viewBox="0 0 1440 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover">
+          <path d="M0 200 L150 80 L320 150 L500 50 L680 120 L900 20 L1150 140 L1300 70 L1440 200 Z" fill="#FFFFFF"/>
+        </svg>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 relative z-10">
         
-        {/* Top 4-column layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+        {/* Top Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           
           {/* Brand details */}
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-5">
             <Link href="/" className="self-start">
               <Logo light={true} />
             </Link>
-            <p className="text-sm text-gray-400 leading-relaxed pt-2">
+            <p className="text-xs text-gray-400 leading-relaxed font-medium">
               TreckWari conducts professional, safe, and highly aesthetic trekking expeditions and wilderness safaris across Maharashtra. Discover the Sahyadris with us.
             </p>
             {/* Social Links */}
-            <div className="flex space-x-4 pt-2">
-              <a 
-                href={settings.instagram} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="bg-gray-900 hover:bg-orange-600 text-white p-2 rounded-full transition-all duration-300"
-              >
-                <Instagram className="h-4 w-4" />
-              </a>
-              <a 
-                href={settings.youtube} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="bg-gray-900 hover:bg-orange-600 text-white p-2 rounded-full transition-all duration-300"
-              >
-                <Youtube className="h-4 w-4" />
-              </a>
-              <a 
-                href={settings.facebook} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="bg-gray-900 hover:bg-orange-600 text-white p-2 rounded-full transition-all duration-300"
-              >
-                <Facebook className="h-4 w-4" />
-              </a>
+            <div className="flex space-x-3 pt-2">
+              {[
+                { icon: <Instagram className="h-4 w-4" />, href: settings.instagram },
+                { icon: <Youtube className="h-4 w-4" />, href: settings.youtube },
+                { icon: <Facebook className="h-4 w-4" />, href: settings.facebook }
+              ].map((social, index) => (
+                <motion.a 
+                  key={index}
+                  href={social.href} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  whileHover={{ scale: 1.1, backgroundColor: '#FF7A00' }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-white/5 text-white p-2.5 rounded-full transition-colors cursor-pointer"
+                >
+                  {social.icon}
+                </motion.a>
+              ))}
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-white text-sm font-bold uppercase tracking-wider mb-5">Quick Explore</h4>
-            <ul className="space-y-3 text-sm">
+            <h4 className="text-white text-xs uppercase font-extrabold tracking-widest mb-6">Quick Explore</h4>
+            <ul className="space-y-3.5 text-xs font-semibold">
               <li>
-                <Link href="/treks" className="hover:text-orange-600 transition-colors">
+                <Link href="/treks" className="hover:text-primary-orange transition-colors">
                   Upcoming Expeditions
                 </Link>
               </li>
               <li>
-                <Link href="/gallery" className="hover:text-orange-600 transition-colors">
+                <Link href="/gallery" className="hover:text-primary-orange transition-colors">
                   Photo & Drone Gallery
                 </Link>
               </li>
               <li>
-                <Link href="/blog" className="hover:text-orange-600 transition-colors">
+                <Link href="/blog" className="hover:text-primary-orange transition-colors">
                   Adventure Blog & Tips
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="hover:text-orange-600 transition-colors">
+                <Link href="/about" className="hover:text-primary-orange transition-colors">
+                  About TrekWari
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-primary-orange transition-colors">
                   Contact & Inquiries
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Headquarters / Contacts */}
+          {/* Contacts */}
           <div>
-            <h4 className="text-white text-sm font-bold uppercase tracking-wider mb-5">Get in Touch</h4>
-            <ul className="space-y-4 text-sm">
+            <h4 className="text-white text-xs uppercase font-extrabold tracking-widest mb-6">Get in Touch</h4>
+            <ul className="space-y-4.5 text-xs font-semibold">
               <li className="flex items-start">
-                <MapPin className="h-5 w-5 mr-3 text-orange-600 flex-shrink-0" />
-                <span className="leading-tight">
-                  <strong>Headquarters:</strong><br />
+                <MapPin className="h-4 w-4 mr-3 text-primary-orange flex-shrink-0 mt-0.5" />
+                <span className="leading-relaxed">
+                  <strong className="text-white font-bold">Headquarters:</strong><br />
                   {settings.location}
                 </span>
               </li>
               <li className="flex items-center">
-                <Phone className="h-4 w-4 mr-3 text-orange-600 flex-shrink-0" />
+                <Phone className="h-4 w-4 mr-3 text-primary-orange flex-shrink-0" />
                 <a href={`tel:${settings.phone}`} className="hover:text-white transition-colors">
                   {settings.phone}
                 </a>
               </li>
               <li className="flex items-center">
-                <Mail className="h-4 w-4 mr-3 text-orange-600 flex-shrink-0" />
+                <Mail className="h-4 w-4 mr-3 text-primary-orange flex-shrink-0" />
                 <a href={`mailto:${settings.email}`} className="hover:text-white transition-colors truncate">
                   {settings.email}
                 </a>
@@ -160,30 +167,32 @@ export default function Footer() {
 
           {/* Newsletter Box */}
           <div>
-            <h4 className="text-white text-sm font-bold uppercase tracking-wider mb-5">Stay Updated</h4>
-            <p className="text-sm text-gray-400 mb-4 leading-relaxed">
-              Subscribe to recieve alerts about upcoming monsoon treks, camping outings, and special discounts.
+            <h4 className="text-white text-xs uppercase font-extrabold tracking-widest mb-6">Stay Updated</h4>
+            <p className="text-xs text-gray-400 mb-5 leading-relaxed font-medium">
+              Subscribe to receive alerts about upcoming monsoon treks, camping outings, and special discounts.
             </p>
             {subscribed ? (
-              <div className="bg-gray-905/40 text-orange-500 text-xs px-3 py-2.5 rounded-lg border border-gray-800">
-                🎉 Thank you for subscribing to TrekWari!
+              <div className="bg-white/5 text-primary-orange text-[10px] font-bold uppercase tracking-wider px-4 py-3.5 rounded-[14px] border border-white/5">
+                🎉 Subscribed to TrekWari Alerts!
               </div>
             ) : (
-              <form onSubmit={handleSubscribe} className="flex">
+              <form onSubmit={handleSubscribe} className="flex space-x-2">
                 <input
                   type="email"
                   required
-                  placeholder="Enter email..."
+                  placeholder="Enter email address..."
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
-                  className="bg-gray-900 border border-gray-800 rounded-l-lg px-3 py-2 text-sm text-white placeholder-gray-600 w-full focus:outline-none focus:border-orange-600"
+                  className="bg-white/5 border border-white/10 rounded-[14px] px-4 py-3 text-xs text-white placeholder-gray-600 w-full focus:outline-none focus:border-primary-orange focus:ring-1 focus:ring-primary-orange transition-all font-semibold"
                 />
-                <button
+                <motion.button
                   type="submit"
-                  className="bg-orange-600 text-white px-3 rounded-r-lg hover:bg-orange-500 transition-colors flex items-center justify-center"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="bg-primary-orange text-white p-3.5 rounded-[14px] hover:bg-orange-600 transition-colors flex items-center justify-center cursor-pointer shadow-md"
                 >
                   <ArrowRight className="h-4 w-4" />
-                </button>
+                </motion.button>
               </form>
             )}
           </div>
@@ -191,11 +200,11 @@ export default function Footer() {
         </div>
 
         {/* Divider */}
-        <hr className="border-gray-900 my-8" />
+        <hr className="border-white/5 my-8" />
 
         {/* Bottom Credits */}
-        <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 space-y-4 sm:space-y-0">
-          <p>© {new Date().getFullYear()} TrekWari Adventure Platform. All rights reserved.</p>
+        <div className="flex flex-col sm:flex-row items-center justify-between text-[10px] uppercase font-bold tracking-widest text-gray-500 space-y-4 sm:space-y-0">
+          <p>© {new Date().getFullYear()} TrekWari. All rights reserved.</p>
           <div className="flex space-x-6">
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>

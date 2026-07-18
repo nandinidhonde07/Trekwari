@@ -66,6 +66,8 @@ export const viewport: Viewport = {
   userScalable: true
 };
 
+import { ToastProvider } from '../components/ui/toast';
+
 export default function RootLayout({
   children,
 }: {
@@ -75,7 +77,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AuthProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

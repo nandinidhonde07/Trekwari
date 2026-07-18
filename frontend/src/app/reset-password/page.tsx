@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '../../lib/api';
 import Logo from '../../components/Logo';
 import { Lock, ChevronLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -62,72 +63,76 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div className="glass-card-dark rounded-3xl p-8 border border-white/10 shadow-2xl flex flex-col items-center">
+    <div className="w-full max-w-sm bg-white rounded-[20px] p-8 border border-gray-150 shadow-lg shadow-black/[0.02] flex flex-col items-center">
       {/* Brand Logo */}
-      <Logo light={true} className="mb-6" />
+      <Logo light={false} className="mb-6" />
 
-      <h2 className="text-xl font-bold font-display text-white text-center mb-2">Set New Password</h2>
-      <p className="text-xs text-emerald-100/60 text-center mb-6">Choose a strong password containing at least one capital letter, digit, and special character.</p>
+      <h2 className="text-xl font-bold font-display text-dark-charcoal text-center mb-2">Set New Password</h2>
+      <p className="text-xs text-gray-500 text-center mb-6 font-semibold">Choose a strong password containing at least one capital letter, digit, and special character.</p>
 
       {errorMsg && (
-        <div className="w-full bg-red-950/45 border border-red-500/30 text-red-200 text-xs px-4 py-3 rounded-xl mb-4 flex items-start gap-2.5">
-          <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
+        <div className="w-full bg-red-50 border border-red-100 text-red-800 text-xs px-4 py-3 rounded-xl mb-4 flex items-start gap-2.5">
+          <AlertCircle className="h-4.5 w-4.5 text-red-500 flex-shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {successMsg ? (
-        <div className="w-full bg-emerald-950/45 border border-emerald-500/30 text-emerald-200 text-xs px-4 py-4 rounded-xl mb-4 flex flex-col items-center gap-2.5 text-center">
-          <CheckCircle2 className="h-8 w-8 text-sunrise-orange" />
-          <span>{successMsg}</span>
-          <span className="text-emerald-100/50 text-[10px] mt-2">Redirecting to login page in 3 seconds...</span>
+        <div className="w-full bg-white border border-gray-150 text-gray-600 text-xs px-4 py-6 rounded-[20px] mb-4 flex flex-col items-center gap-3 text-center font-semibold">
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full shadow-sm">
+            <CheckCircle2 className="h-6 w-6" />
+          </div>
+          <span className="leading-relaxed">{successMsg}</span>
+          <span className="text-gray-400 text-[9px] uppercase tracking-wider mt-4">Redirecting in 3 seconds...</span>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="w-full space-y-4">
           {/* New Password */}
           <div>
-            <label className="block text-[10px] font-bold text-emerald-100/60 uppercase tracking-wider mb-2">New Password</label>
+            <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">New Password</label>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-100/40" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-gray-400" />
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 8 chars (1 upper, 1 special)"
-                className="w-full bg-emerald-950/40 border border-emerald-800/80 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-emerald-100/30 focus:outline-none focus:border-sunrise-orange focus:ring-1 focus:ring-sunrise-orange transition-all"
+                className="w-full bg-white border border-gray-250 rounded-xl pl-10 pr-4 py-3 text-xs text-dark-charcoal placeholder-gray-405 focus:outline-none focus:border-primary-orange focus:ring-1 focus:ring-primary-orange transition-all font-semibold"
               />
             </div>
           </div>
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-[10px] font-bold text-emerald-100/60 uppercase tracking-wider mb-2">Confirm New Password</label>
+            <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Confirm New Password</label>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-100/40" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-gray-400" />
               <input
                 type="password"
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter password"
-                className="w-full bg-emerald-950/40 border border-emerald-800/80 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-emerald-100/30 focus:outline-none focus:border-sunrise-orange focus:ring-1 focus:ring-sunrise-orange transition-all"
+                className="w-full bg-white border border-gray-250 rounded-xl pl-10 pr-4 py-3 text-xs text-dark-charcoal placeholder-gray-405 focus:outline-none focus:border-primary-orange focus:ring-1 focus:ring-primary-orange transition-all font-semibold"
               />
             </div>
           </div>
 
           {/* Submit Action */}
-          <button
+          <motion.button
             type="submit"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             disabled={isSubmitting}
-            className="bg-sunrise-orange hover:bg-yellow-500 text-forest-green font-bold text-xs uppercase tracking-wider py-4 rounded-xl shadow-md w-full transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.01]"
+            className="bg-primary-orange hover:bg-orange-600 text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-[14px] shadow-sm w-full transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
           >
             {isSubmitting ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-forest-green" />
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white" />
             ) : (
               'Reset Password'
             )}
-          </button>
+          </motion.button>
         </form>
       )}
     </div>
@@ -136,25 +141,39 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <main className="min-h-screen w-full flex flex-col justify-center items-center relative overflow-hidden bg-cover bg-center" style={{ backgroundImage: "url('/images/homepage_banner.jpg')" }}>
-      {/* Dark Forest Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-forest-green/80 to-emerald-950/95" />
-
+    <main className="min-h-screen w-full grid grid-cols-1 md:grid-cols-12 bg-warm-white relative overflow-hidden font-sans">
+      
       {/* Back button */}
-      <a href="/login" className="absolute top-6 left-6 text-white/70 hover:text-white flex items-center text-xs font-semibold uppercase tracking-wider transition-colors z-10">
-        <ChevronLeft className="h-4 w-4 mr-1 text-sunrise-orange" />
+      <a href="/login" className="absolute top-6 left-6 text-dark-charcoal/70 hover:text-dark-charcoal flex items-center text-xs font-bold uppercase tracking-widest transition-colors z-10">
+        <ChevronLeft className="h-4 w-4 mr-1 text-primary-orange" />
         Back to Login
       </a>
 
-      <div className="relative z-10 w-full max-w-md px-4">
+      {/* Left Panel: Scenic Photo (5 col span) */}
+      <div className="hidden md:block md:col-span-5 relative h-full overflow-hidden">
+        <img 
+          src="https://images.unsplash.com/photo-1533240332313-0db49b439ad3?q=80&w=1200" 
+          alt="Climber stand at summit during clear blue sky" 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute bottom-10 left-10 right-10 text-white z-10 space-y-2">
+          <p className="text-xl font-bold font-display leading-tight">"It is not the mountain we conquer, but ourselves."</p>
+          <p className="text-[9px] uppercase tracking-widest font-extrabold text-primary-orange">Sir Edmund Hillary</p>
+        </div>
+      </div>
+
+      {/* Right Panel: White Form Card (7 col span) */}
+      <div className="col-span-1 md:col-span-7 flex flex-col justify-center items-center px-6 py-12 bg-warm-white relative">
         <Suspense fallback={
-          <div className="glass-card-dark rounded-3xl p-8 border border-white/10 shadow-2xl flex flex-col items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sunrise-orange" />
+          <div className="w-full max-w-sm bg-white rounded-[20px] p-8 border border-gray-150 shadow-lg shadow-black/[0.02] flex flex-col items-center justify-center h-48">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-orange" />
           </div>
         }>
           <ResetPasswordForm />
         </Suspense>
       </div>
+
     </main>
   );
 }

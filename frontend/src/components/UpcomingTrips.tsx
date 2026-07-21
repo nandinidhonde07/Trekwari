@@ -32,8 +32,18 @@ export default function UpcomingTrips() {
     async function loadTrips() {
       try {
         const data = await api.events.list({ status: 'OPEN_REGISTRATION' });
-        const upcomingOnly = data.filter((e: any) => new Date(e.startDate) > new Date());
-        setTrips(upcomingOnly.length > 0 ? upcomingOnly.slice(0, 3) : data.slice(0, 3));
+        const now = new Date();
+        const validUpcoming = (data || [])
+          .filter((e: any) => {
+            const isFuture = new Date(e.startDate) >= now;
+            const hasSeats = (e.availableSeats ?? e.maxSeats) > 0;
+            const isOpen = e.status === 'OPEN_REGISTRATION';
+            const notDeleted = !e.isDeleted;
+            return isFuture && hasSeats && isOpen && notDeleted;
+          })
+          .sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
+        setTrips(validUpcoming.slice(0, 3));
       } catch (err) {
         console.error('Failed to load upcoming events:', err);
       } finally {
@@ -89,9 +99,9 @@ export default function UpcomingTrips() {
         ) : trips.length === 0 ? (
           <div className="max-w-xl mx-auto">
             <EmptyState 
-              title="No Departures Open Currently"
-              description="We are planning our upcoming mountain treks and monsoon expeditions. Follow us on Instagram @trekwari to get alerts as soon as bookings open!"
-              actionLabel="Follow Instagram"
+              title="No Upcoming Treks"
+              description="We're planning our next adventure. Stay tuned for exciting new treks!"
+              actionLabel="Notify Me"
               onAction={() => window.open('https://instagram.com/trekwari', '_blank')}
             />
           </div>

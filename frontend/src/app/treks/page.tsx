@@ -38,8 +38,11 @@ export default function TreksPage() {
   useEffect(() => {
     async function loadEvents() {
       try {
-        const data = await api.events.list();
-        const activeEvents = data.filter((e: any) => e.status !== 'COMPLETED');
+        const data = await api.events.list({ status: 'OPEN_REGISTRATION' });
+        const now = new Date();
+        const activeEvents = (data || [])
+          .filter((e: any) => new Date(e.startDate) >= now && e.status === 'OPEN_REGISTRATION' && !e.isDeleted)
+          .sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
         setEvents(activeEvents);
       } catch (err) {
         console.error('Failed to fetch treks:', err);

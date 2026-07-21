@@ -23,7 +23,7 @@ export default function AboutFounder() {
     {
       icon: <ShieldCheck className="h-5 w-5 text-primary-orange" />,
       title: 'Safety First Protocol',
-      desc: 'Conducting trips under certified local guidance, emergency equipment backups, and remote support links.'
+      desc: 'Conducting trips under local guidance, emergency equipment backups, and remote support links.'
     },
     {
       icon: <Heart className="h-5 w-5 text-primary-orange" />,

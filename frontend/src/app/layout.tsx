@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     default: 'TreckWari – Adventure Trekking & Expedition Platform',
     template: '%s | TreckWari'
   },
-  description: 'Join TreckWari for unforgettable trekking, camping, and nature explorations across Maharashtra and beyond. Conducted under certified leadership and safety guidelines.',
+  description: 'Join TreckWari for unforgettable trekking, camping, and nature explorations across Maharashtra and beyond. Conducted under leadership and safety guidelines.',
   keywords: ['Trekking', 'Maharashtra Trekking', 'Kalsubai Trek', 'Adrai Jungle Trek', 'Adventure Tours', 'Camping India'],
   authors: [{ name: 'Atharva Dhawale' }],
   creator: 'TreckWari',
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'TreckWari – Adventure Trekking & Expedition Platform',
-    description: 'Explore Maharashtra\'s highest peaks and dense forest trails with certified leaders. Safe, professional, and lifetime outdoor memories.',
+    description: 'Explore Maharashtra\'s highest peaks and dense forest trails with experienced leaders. Safe, professional, and lifetime outdoor memories.',
     url: 'https://treckwari.com',
     siteName: 'TreckWari',
     locale: 'en_IN',
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'TreckWari – Adventure Trekking & Expedition Platform',
-    description: 'Explore Maharashtra\'s highest peaks and dense forest trails with certified leaders.',
+    description: 'Explore Maharashtra\'s highest peaks and dense forest trails with experienced leaders.',
     images: ['/images/kalsubai_2.jpg']
   },
   robots: {

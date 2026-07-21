@@ -43,7 +43,7 @@ export default function LatestArticles() {
               Latest Expedition Articles
             </h2>
             <p className="text-xs sm:text-sm text-gray-500 font-semibold max-w-xl">
-              Trail insights, fitness preparation checklists, and wilderness safety tips written by certified mountaineers.
+              Trail insights, fitness preparation checklists, and wilderness safety tips written by mountaineers.
             </p>
           </div>
           <Link

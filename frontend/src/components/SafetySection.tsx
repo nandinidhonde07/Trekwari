@@ -34,7 +34,7 @@ export default function SafetySection() {
     {
       icon: <Activity className="h-6 w-6 text-primary-orange" />,
       title: 'Wilderness First Aid',
-      desc: 'All trek leaders are certified first responders, trained in emergency management and wilderness injury treatment.'
+      desc: 'All trek leaders are first responders, trained in emergency management and wilderness injury treatment.'
     },
     {
       icon: <CloudSun className="h-6 w-6 text-primary-orange" />,
@@ -138,7 +138,7 @@ export default function SafetySection() {
                   <h3 className="text-base font-bold font-display text-dark-charcoal">Wilderness First Aid Audit</h3>
                 </div>
                 <p className="text-xs text-gray-500 leading-relaxed font-semibold">
-                  Every TreckWari guide is certified in Wilderness First Aid (WFA/WFR). Here is the active responder log:
+                  Every TreckWari guide is trained in Wilderness First Aid (WFA/WFR). Here is the active responder log:
                 </p>
                 <div className="space-y-2">
                   <div className="p-3 bg-gray-50 rounded-xl border border-gray-150 flex justify-between items-center">

@@ -199,7 +199,7 @@ export default function BlogPage() {
             TrekWari Articles & Field Guides
           </h1>
           <p className="text-xs sm:text-sm text-gray-300 max-w-xl mx-auto font-medium leading-relaxed">
-            Trail prep checklists, safety guides, route recce reports, and monsoon trek logs authored by certified expedition leaders.
+            Trail prep checklists, safety guides, route recce reports, and monsoon trek logs authored by expedition leaders.
           </p>
         </div>
       </section>

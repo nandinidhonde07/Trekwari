@@ -3073,7 +3073,7 @@ export default function AdminDashboardPage() {
                           value={officialCaption}
                           onChange={(e) => setOfficialCaption(e.target.value)}
                           className="w-full border border-gray-200 rounded-xl p-3 text-xs bg-white focus:outline-none focus:border-primary-orange"
-                          placeholder="Explore the Sahyadris with our certified leaders! 🌄 #trekwari #kalsubai"
+                          placeholder="Explore the Sahyadris with our leaders! 🌄 #trekwari #kalsubai"
                         />
                       </div>
 

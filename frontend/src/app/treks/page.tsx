@@ -76,7 +76,7 @@ export default function TreksPage() {
           <span className="text-[10px] uppercase tracking-[0.3em] font-extrabold text-primary-orange">Explore Sahyadri</span>
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight font-display">Adventure Expeditions</h1>
           <p className="text-xs sm:text-sm text-gray-400 max-w-lg mx-auto pt-2 leading-relaxed font-semibold">
-            Choose your challenge. From dense forest trails to steep rocky summits, explore Maharashtra with certified guides.
+            Choose your challenge. From dense forest trails to steep rocky summits, explore Maharashtra with experienced guides.
           </p>
         </div>
       </section>

@@ -36,7 +36,7 @@ export default function AboutPage() {
               TrekWari was founded by Atharva Dhawale with a single purpose: to transform standard trekking outings into highly professional, educational, and secure wilderness expeditions. We believe that Maharashtra's historic hill forts and dense forests hold stories that deserve to be explored responsibly.
             </p>
             <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
-              Every route we schedule is thoroughly mapped, our leaders are certified in wilderness first aid, and we enforce a strict code of leave-no-trace ecotourism to protect historical sites for generations to come.
+              Every route we schedule is thoroughly mapped, our leaders are trained in wilderness first aid, and we enforce a strict code of leave-no-trace ecotourism to protect historical sites for generations to come.
             </p>
           </div>
           <div className="relative rounded-[20px] overflow-hidden aspect-video shadow-md border border-gray-100">
@@ -69,7 +69,7 @@ export default function AboutPage() {
             </div>
             <div className="space-y-1 border-l border-gray-200">
               <p className="text-3xl sm:text-4xl font-black text-primary-orange font-display">50+</p>
-              <p className="text-[9px] text-gray-400 uppercase font-extrabold tracking-wider">Certified Leaders</p>
+              <p className="text-[9px] text-gray-400 uppercase font-extrabold tracking-wider">Leaders</p>
             </div>
           </div>
         </section>

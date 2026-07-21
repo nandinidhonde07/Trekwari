@@ -145,7 +145,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-xs sm:text-sm text-white/90 font-semibold max-w-xl mx-auto leading-relaxed"
           >
-            Discover the untouched beauty of Maharashtra with curated treks and unforgettable adventures led by certified mountaineers.
+            Discover the untouched beauty of Maharashtra with curated treks and unforgettable adventures led by mountaineers.
           </motion.p>
 
           <motion.div 

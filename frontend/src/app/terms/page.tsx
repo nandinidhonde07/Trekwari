@@ -57,7 +57,7 @@ export default function TermsPage() {
 
           <h3 className="text-base sm:text-lg font-bold text-dark-charcoal font-display pt-4">4. Liability Waiver</h3>
           <p>
-            Each participant assumes full responsibility for their physical fitness level. TrekWari and its certified volunteers shall not be held liable for personal injuries, illnesses, or properties lost during adventure routes.
+            Each participant assumes full responsibility for their physical fitness level. TrekWari and its volunteers shall not be held liable for personal injuries, illnesses, or properties lost during adventure routes.
           </p>
         </div>
 

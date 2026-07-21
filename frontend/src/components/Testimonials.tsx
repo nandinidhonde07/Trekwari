@@ -7,25 +7,25 @@ export default function Testimonials() {
     {
       quote: 'Genuinely felt cared for from pickup to drop-off. The sunrise on Kalsubai is burned into memory.',
       initials: 'ND',
-      name: 'NANDINI DHONDE',
+      name: 'Nandini Dhonde',
       detail: 'Kalsubai - Jun 2026'
     },
     {
       quote: 'As a solo trekker I worried about safety. TrekWari\'s leaders are the real deal — I\'ve done 2 treks with them now.',
       initials: 'KD',
-      name: 'KALYANI DAVANGE',
+      name: 'Kalyani Davange',
       detail: 'Konkan Kada - Sep 2025'
     },
     {
       quote: 'Rappelling into Sandhan was the most alive I\'ve felt in years. Every detail was handled beautifully.',
       initials: 'SJ',
-      name: 'SAGAR JADHAV',
+      name: 'Sagar Jadhav',
       detail: 'Sandhan Valley - Nov 2025'
     },
     {
       quote: 'Monsoon Rajmachi with TrekWari = 10/10. Chai on the fort at sunrise was pure magic.',
       initials: 'UK',
-      name: 'UDIT KHADE',
+      name: 'Udit Khade',
       detail: 'Rajmachi - Jul 2026'
     }
   ];

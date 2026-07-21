@@ -33,7 +33,7 @@ export default function UpcomingTrips() {
       try {
         const data = await api.events.list({ status: 'OPEN_REGISTRATION' });
         const upcomingOnly = data.filter((e: any) => new Date(e.startDate) > new Date());
-        setTrips(upcomingOnly.slice(0, 3));
+        setTrips(upcomingOnly.length > 0 ? upcomingOnly.slice(0, 3) : data.slice(0, 3));
       } catch (err) {
         console.error('Failed to load upcoming events:', err);
       } finally {
@@ -57,7 +57,7 @@ export default function UpcomingTrips() {
               The mountains are calling.
             </h2>
             <p className="text-gray-500 text-xs sm:text-sm leading-relaxed max-w-xl font-medium">
-              Handpicked Sahyadri departures. Small groups. Certified safety protocols. Unforgettable sunrise views guaranteed.
+              Handpicked Sahyadri departures. Small groups. Safety protocols. Unforgettable sunrise views guaranteed.
             </p>
           </div>
           <Link

@@ -20,6 +20,7 @@ import policyRoutes from './routes/policyRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import weatherRoutes from './routes/weatherRoutes';
 import adminRoutes from './routes/adminRoutes';
+import uploadRoutes from './routes/uploadRoutes';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -60,7 +61,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json({ limit: '10mb' })); // Support larger payloads for Cloudinary base64 images
+app.use(express.json({ limit: '20mb' })); // Support larger payloads for Cloudinary base64 images
 
 // Apply rate limiting (Max 150 requests per 15 minutes per IP)
 const limiter = rateLimit({
@@ -83,17 +84,23 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
-// Input Sanitization Middleware (XSS Protection)
+// Input Sanitization Middleware (XSS Protection - Bypasses raw image payloads)
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (req.body) {
     for (const key in req.body) {
       if (typeof req.body[key] === 'string') {
-        req.body[key] = req.body[key]
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#x27;')
-          .replace(/\//g, '&#x2F;');
+        const val = req.body[key];
+        const isImageData = val.startsWith('data:image/') || val.startsWith('data:video/') || val.startsWith('http://') || val.startsWith('https://');
+        const isImageKey = ['file', 'image', 'coverImage', 'bannerImage', 'avatarUrl', 'url'].includes(key);
+        
+        if (!isImageData && !isImageKey) {
+          req.body[key] = val
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#x27;')
+            .replace(/\//g, '&#x2F;');
+        }
       }
     }
   }
@@ -109,6 +116,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Route registration
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/events', trekRoutes);
 app.use('/api/bookings', bookingRoutes);

@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { 
   Plus, Edit, Trash2, Save, X, Eye, EyeOff, CheckCircle2, AlertCircle,
-  MapPin, Calendar, IndianRupee, Users, Image as ImageIcon, ChevronDown, ChevronUp, Clock, Layers
+  MapPin, Calendar, IndianRupee, Users, Image as ImageIcon, ChevronDown, ChevronUp, Clock, Layers, ArrowUp, ArrowDown, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ImageUploader } from './ImageUploader';
 
 interface TrekCMSManagerProps {
   policies?: any[];
@@ -513,19 +514,97 @@ export function TrekCMSManager({ policies = [] }: TrekCMSManagerProps) {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Cover Image URL *</label>
-                        <input
-                          type="text"
-                          required
-                          value={coverImage}
-                          onChange={(e) => setCoverImage(e.target.value)}
-                          placeholder="https://images.unsplash.com/photo..."
-                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
-                        />
+                    {/* Cover Image Upload */}
+                    <div>
+                      <ImageUploader
+                        label="Cover Image *"
+                        value={coverImage}
+                        onChange={setCoverImage}
+                        folder="treckwari/treks"
+                      />
+                    </div>
+
+                    {/* Gallery Images Section */}
+                    <div className="space-y-3 pt-2 border-t border-gray-100">
+                      <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
+                        Trek Gallery Images ({galleryImages.filter(Boolean).length})
+                      </label>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {galleryImages.filter(Boolean).map((imgUrl, idx) => (
+                          <div key={idx} className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50 aspect-square group shadow-sm">
+                            <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                              <div className="flex justify-between items-center">
+                                {coverImage === imgUrl ? (
+                                  <span className="bg-primary-orange text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase">Cover</span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setCoverImage(imgUrl)}
+                                    className="bg-white/90 text-dark-charcoal text-[8px] font-bold px-2 py-0.5 rounded-full hover:bg-white cursor-pointer"
+                                  >
+                                    Set Cover
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => setGalleryImages(prev => prev.filter((_, i) => i !== idx))}
+                                  className="bg-red-650 text-white p-1 rounded-lg hover:bg-red-600"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+
+                              <div className="flex justify-center gap-1">
+                                {idx > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...galleryImages];
+                                      const temp = updated[idx];
+                                      updated[idx] = updated[idx - 1];
+                                      updated[idx - 1] = temp;
+                                      setGalleryImages(updated);
+                                    }}
+                                    className="bg-white/80 p-1 rounded hover:bg-white text-dark-charcoal"
+                                  >
+                                    <ArrowUp className="h-3 w-3" />
+                                  </button>
+                                )}
+                                {idx < galleryImages.length - 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...galleryImages];
+                                      const temp = updated[idx];
+                                      updated[idx] = updated[idx + 1];
+                                      updated[idx + 1] = temp;
+                                      setGalleryImages(updated);
+                                    }}
+                                    className="bg-white/80 p-1 rounded hover:bg-white text-dark-charcoal"
+                                  >
+                                    <ArrowDown className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
+                      <ImageUploader
+                        label="+ Add Image to Gallery"
+                        value=""
+                        onChange={(url) => {
+                          if (url) setGalleryImages(prev => [...prev.filter(Boolean), url]);
+                        }}
+                        folder="treckwari/gallery"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Trek Type</label>
                         <select
@@ -538,6 +617,17 @@ export function TrekCMSManager({ policies = [] }: TrekCMSManagerProps) {
                           <option value="SAFARI">Nature Safari</option>
                           <option value="BACKPACKING">Expedition Tour</option>
                         </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Base Location</label>
+                        <input
+                          type="text"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          placeholder="e.g. Bari Village, Igatpuri"
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
                       </div>
                     </div>
 

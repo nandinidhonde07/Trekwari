@@ -233,6 +233,11 @@ export const api = {
     }
   },
 
+  // Direct Image Upload
+  upload: {
+    image: (file: string, folder?: string) => apiFetch('/upload', { method: 'POST', body: JSON.stringify({ file, folder }) })
+  },
+
   // Notifications
   notifications: {
     list: () => apiFetch('/notifications'),

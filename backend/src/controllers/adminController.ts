@@ -294,3 +294,94 @@ export async function revokeUserSession(req: AuthRequest, res: Response) {
     return res.status(500).json({ error: 'Failed to revoke user session.' });
   }
 }
+
+/**
+ * Updates a user's role (Super Admin only).
+ */
+export async function adminUpdateUserRole(req: AuthRequest, res: Response) {
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized.' });
+  const { id } = req.params;
+  const { role } = req.body;
+
+  const validRoles = ['SUPER_ADMIN', 'ADMIN', 'TREK_LEADER', 'VOLUNTEER', 'USER'];
+  if (!role || !validRoles.includes(role)) {
+    return res.status(400).json({ error: 'Invalid user role specified.' });
+  }
+
+  // Prevent self-role modification
+  if (id === req.user.id) {
+    return res.status(400).json({ error: 'You cannot modify your own administrative role.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const previousRole = user.role;
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { role }
+    });
+
+    await logAdminAction(
+      req.user.id,
+      'SUPER_ADMIN_ROLE_CHANGE',
+      `Changed role for ${user.email} from ${previousRole} to ${role}`,
+      req
+    );
+
+    return res.json({
+      message: `User role updated successfully to: ${role}`,
+      user: {
+        id: updated.id,
+        email: updated.email,
+        role: updated.role
+      }
+    });
+  } catch (error) {
+    console.error('Admin updateUserRole error:', error);
+    return res.status(500).json({ error: 'Failed to update user role.' });
+  }
+}
+
+/**
+ * Permanently deletes a user account (Super Admin only).
+ */
+export async function adminDeleteUser(req: AuthRequest, res: Response) {
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized.' });
+  const { id } = req.params;
+
+  // Prevent self-deletion
+  if (id === req.user.id) {
+    return res.status(400).json({ error: 'You cannot delete your own administrative account.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Clean up dependencies
+    await prisma.session.deleteMany({ where: { userId: id } });
+    await prisma.notification.deleteMany({ where: { userId: id } });
+    await prisma.memoryLike.deleteMany({ where: { userId: id } });
+    await prisma.memoryComment.deleteMany({ where: { userId: id } });
+
+    await prisma.user.delete({ where: { id } });
+
+    await logAdminAction(
+      req.user.id,
+      'SUPER_ADMIN_USER_DELETE',
+      `Permanently deleted user account: ${user.email} (Name: ${user.name})`,
+      req
+    );
+
+    return res.json({ message: 'User account and all related sessions deleted permanently.' });
+  } catch (error) {
+    console.error('Admin deleteUser error:', error);
+    return res.status(500).json({ error: 'Failed to delete user account. Some active references exist.' });
+  }
+}

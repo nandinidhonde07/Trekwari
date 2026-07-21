@@ -37,7 +37,14 @@ function formatE164Phone(phone: string): string {
 }
 
 // Helper to log authentication events in AuditLog
-async function logAuditEvent(userId: string | null, action: string, details: string, req: Request) {
+async function logAuditEvent(
+  userId: string | null,
+  action: string,
+  details: string,
+  req: Request,
+  previousValue?: string | null,
+  newValue?: string | null
+) {
   try {
     const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || null;
     await prisma.auditLog.create({
@@ -45,7 +52,9 @@ async function logAuditEvent(userId: string | null, action: string, details: str
         userId,
         action,
         details,
-        ipAddress: ipAddress ? ipAddress.split(',')[0].trim() : null
+        ipAddress: ipAddress ? ipAddress.split(',')[0].trim() : null,
+        previousValue: previousValue || null,
+        newValue: newValue || null
       }
     });
   } catch (err) {
@@ -875,6 +884,43 @@ export async function uploadAvatar(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error('Avatar upload error:', error);
     return res.status(500).json({ error: 'Failed to upload profile photo.' });
+  }
+}
+
+/**
+ * Removes profile photo (resets avatarUrl to null).
+ */
+export async function removeAvatar(req: AuthRequest, res: Response) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Unauthorized.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id }
+    });
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { avatarUrl: null }
+    });
+
+    await logAuditEvent(
+      req.user.id,
+      'AVATAR_REMOVE',
+      'User removed custom profile photo.',
+      req,
+      user ? JSON.stringify({ avatarUrl: user.avatarUrl }) : null,
+      JSON.stringify({ avatarUrl: null })
+    );
+
+    return res.json({
+      message: 'Profile photo removed successfully.',
+      avatarUrl: null
+    });
+  } catch (error) {
+    console.error('Avatar remove error:', error);
+    return res.status(500).json({ error: 'Failed to remove profile photo.' });
   }
 }
 

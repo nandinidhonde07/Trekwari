@@ -1,10 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Compass, ShieldCheck, Heart, MapPin } from 'lucide-react';
+import { api } from '../lib/api';
 
 export default function AboutFounder() {
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    api.settings.get()
+      .then(setSettings)
+      .catch(err => console.error('Failed to load settings in AboutFounder:', err));
+  }, []);
+
   const values = [
     {
       icon: <Compass className="h-5 w-5 text-primary-orange" />,
@@ -48,7 +57,9 @@ export default function AboutFounder() {
               </div>
               <div>
                 <p className="text-[8px] uppercase tracking-widest text-gray-400 font-extrabold">Headquarters</p>
-                <p className="text-sm font-bold text-dark-charcoal font-display">Kopargaon, Maharashtra, India</p>
+                <p className="text-sm font-bold text-dark-charcoal font-display">
+                  {settings?.address ? `${settings.address}, ${settings.city}, ${settings.state} - ${settings.pincode}` : 'Kopargaon, Maharashtra, India'}
+                </p>
               </div>
             </div>
           </div>
@@ -56,7 +67,7 @@ export default function AboutFounder() {
           {/* Right: Rich Content Panel */}
           <div className="lg:col-span-6 space-y-8">
             <div className="space-y-3">
-              <span className="text-xs uppercase tracking-[0.25em] font-extrabold text-primary-orange">The TrekWari Story</span>
+              <span className="text-xs uppercase tracking-[0.25em] font-extrabold text-primary-orange">The {settings?.companyName || 'TrekWari'} Story</span>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-dark-charcoal font-display leading-tight">
                 Who We Are & Why We Explore
               </h2>
@@ -64,7 +75,7 @@ export default function AboutFounder() {
 
             <div className="text-gray-500 space-y-4 leading-relaxed font-sans text-xs sm:text-sm font-semibold">
               <p>
-                TrekWari was founded by <strong>Atharva Dhawale</strong>, a passionate mountaineer and trek leader, with a vision to make premium outdoor exploration safe, accessible, and deeply inspiring for nature enthusiasts across Maharashtra.
+                {settings?.companyName || 'TrekWari'} was founded by <strong>{settings?.founderName || 'Atharva Dhawale'}</strong>, a passionate mountaineer and trek leader, with a vision to make premium outdoor exploration safe, accessible, and deeply inspiring for nature enthusiasts across Maharashtra.
               </p>
               <p>
                 "Waari" is a traditional pilgrimage of devotion. For us, <strong>TrekWari is a pilgrimage of the mountains</strong>. We don't just conquer summits; we walk in harmony with nature, respect the local village communities that host us, and build support networks of like-minded adventurers.

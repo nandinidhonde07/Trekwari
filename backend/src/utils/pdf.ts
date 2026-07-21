@@ -1,5 +1,7 @@
 import PDFDocument from 'pdfkit';
 import { generateQRCode } from './qr';
+import { prisma } from '../lib/prisma';
+import crypto from 'crypto';
 
 /**
  * Converts a PDFKit document generation process into a Buffer promise.
@@ -14,109 +16,227 @@ function buildPDFBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   });
 }
 
+interface TicketMember {
+  id: string;
+  name: string;
+  gender: string;
+  age: number;
+  phone?: string | null;
+  email?: string | null;
+  bloodGroup?: string | null;
+  idProofType?: string | null;
+  idProofNumber?: string | null;
+  seatNumber?: string | null;
+  busNumber?: string | null;
+}
+
 interface TicketData {
   bookingId: string;
   trekTitle: string;
   startDate: string;
   location: string;
-  leadName: string;
-  seatCount: number;
-  pickupPoint: string;
-  emergencyContact: string;
   totalAmount: number;
-  members: string[];
+  difficulty: string;
+  reportingTime: string;
+  reportingLocation: string;
+  pickupPoint: string;
+  coordinatorName: string;
+  coordinatorPhone: string;
+  emergencyContact: string;
+  weatherReminder: string;
+  thingsToCarry: string[];
+  safetyInstructions: string[];
+  cancellationPolicy: string;
+  userId: string;
+  eventId: string;
+  securityToken: string;
+  createdAt: string;
+  members: TicketMember[];
 }
 
 /**
- * Generates a beautiful PDF ticket for a booking.
+ * Generates a beautiful multi-page PDF ticket where each participant gets their own airline boarding pass page.
  */
 export async function generateTicketPDF(data: TicketData): Promise<Buffer> {
   const doc = new PDFDocument({ size: 'A4', margin: 40 });
-  
-  // Header Logo and Title
-  doc.fillColor('#14532D').fontSize(24).font('Helvetica-Bold').text('TRECKWARI', 40, 50);
-  doc.fontSize(10).font('Helvetica').text('Not Just A Trek, It\'s A Waari.', 40, 78);
-  
-  doc.fillColor('#374151').fontSize(14).font('Helvetica-Bold').text('TREKKING EXPEDITION TICKET', 320, 50, { align: 'right' });
-  doc.fontSize(10).font('Helvetica').fillColor('#F59E0B').text(`Booking ID: ${data.bookingId}`, 320, 70, { align: 'right' });
-  doc.fillColor('#9CA3AF').text(`Generated at: ${new Date().toLocaleDateString()}`, 320, 85, { align: 'right' });
+  const JWT_SECRET = process.env.JWT_SECRET || 'treckwari-jwt-super-secret-key-9322340365';
 
-  // Divider Line
-  doc.moveTo(40, 110).lineTo(550, 110).strokeColor('#E5E7EB').lineWidth(1).stroke();
+  // Load settings
+  const settings = await prisma.organizationSettings.findUnique({
+    where: { id: 'default-settings' }
+  });
+  const companyName = settings?.companyName || 'TrekWari';
 
-  // Booking Summary Box
-  doc.fillColor('#F0FDF4').rect(40, 130, 510, 80).fill();
-  doc.fillColor('#14532D').fontSize(16).font('Helvetica-Bold').text(data.trekTitle, 60, 145);
-  doc.fillColor('#374151').fontSize(11).font('Helvetica').text(`Date: ${data.startDate}  |  Location: ${data.location}`, 60, 175);
-  doc.text(`Seats Booked: ${data.seatCount}  |  Status: PAID`, 60, 192);
+  for (let i = 0; i < data.members.length; i++) {
+    const member = data.members[i];
 
-  // Participant details
-  doc.fillColor('#1F2937').fontSize(12).font('Helvetica-Bold').text('Primary Booking Holder:', 40, 235);
-  doc.font('Helvetica').fontSize(11).text(data.leadName, 40, 255);
-
-  doc.font('Helvetica-Bold').text('Pickup Point:', 220, 235);
-  doc.font('Helvetica').text(data.pickupPoint, 220, 255);
-
-  doc.font('Helvetica-Bold').text('Emergency Contact:', 400, 235);
-  doc.font('Helvetica').text(data.emergencyContact, 400, 255);
-
-  // Group Members Table
-  doc.font('Helvetica-Bold').text('Participant Roster:', 40, 290);
-  let memberY = 310;
-  
-  // Headers
-  doc.fillColor('#F3F4F6').rect(40, memberY, 510, 20).fill();
-  doc.fillColor('#374151').fontSize(10).font('Helvetica-Bold').text('No.', 50, memberY + 5);
-  doc.text('Participant Name', 100, memberY + 5);
-  doc.text('Status', 480, memberY + 5);
-  
-  memberY += 20;
-  doc.font('Helvetica');
-
-  data.members.forEach((member, index) => {
-    // Zebra striping
-    if (index % 2 === 1) {
-      doc.fillColor('#F9FAFB').rect(40, memberY, 510, 20).fill();
+    if (i > 0) {
+      doc.addPage();
     }
-    doc.fillColor('#4B5563').text(`${index + 1}`, 50, memberY + 5);
-    doc.text(member, 100, memberY + 5);
-    doc.text('Confirmed', 480, memberY + 5);
-    memberY += 20;
-  });
 
-  // Payment Breakdown
-  doc.fillColor('#374151').font('Helvetica-Bold').text('Total Paid Amount:', 40, memberY + 20);
-  doc.font('Helvetica').text(`INR ${data.totalAmount.toFixed(2)} (Inclusive of GST & Guides fees)`, 40, memberY + 38);
+    // --- MAIN BOARDING PASS ---
+    // Outer border container (rounded)
+    doc.roundedRect(40, 40, 515, 450, 10).strokeColor('#1F2937').lineWidth(1.5).stroke();
 
-  // Terms and Safety guidelines
-  doc.fontSize(10).font('Helvetica-Bold').text('Important Safety Guidelines:', 40, memberY + 70);
-  doc.font('Helvetica').fontSize(9).fillColor('#6B7280');
-  const guidelines = [
-    '1. Please carry a valid Photo ID proof to the pickup point.',
-    '2. Trekking shoes with good rubber treads are mandatory for security.',
-    '3. Do not wander away from the designated group and follow your Trek Leader\'s advice.',
-    '4. TreckWari is an eco-friendly group. Littering is strictly prohibited in nature trails.',
-    '5. In case of emergency or delay, contact Atharva Dhawale immediately at +91 9322340365.'
-  ];
-  let guidelineY = memberY + 90;
-  guidelines.forEach((g) => {
-    doc.text(g, 40, guidelineY);
-    guidelineY += 15;
-  });
+    // Top Orange Header Bar
+    doc.fillColor('#F97316').roundedRect(41, 41, 513, 50, 10).fill();
+    doc.rect(41, 61, 513, 30).fill();
+    
+    // Logo & Header text
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(16).text(companyName.toUpperCase(), 55, 52);
+    doc.fontSize(8).font('Helvetica').text(settings?.tagline || "Not Just A Trek, It's A Waari.", 55, 72);
 
-  // Embed QR Code for scanning
-  try {
-    const qrUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-booking/${data.bookingId}`;
-    const qrBase64 = await generateQRCode(qrUrl);
-    const qrBuffer = Buffer.from(qrBase64.replace(/^data:image\/png;base64,/, ''), 'base64');
-    doc.image(qrBuffer, 430, memberY + 70, { width: 100, height: 100 });
-    doc.fontSize(8).fillColor('#9CA3AF').text('Scan to Verify Ticket', 440, memberY + 175);
-  } catch (err) {
-    console.error('Failed to embed QR code in PDF:', err);
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(14).text('BOARDING PASS / EXPEDITION TICKET', 240, 58, { align: 'right', width: 300 });
+
+    // Primary layout grid
+    let gridY = 110;
+
+    // Row 1: Trek Info
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('TREK / EXPEDITION', 55, gridY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(14).text(data.trekTitle.toUpperCase(), 55, gridY + 12, { width: 280 });
+
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('DATE', 360, gridY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(12).text(data.startDate, 360, gridY + 12);
+
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('DIFFICULTY', 460, gridY);
+    doc.fillColor('#F97316').font('Helvetica-Bold').fontSize(12).text(data.difficulty.toUpperCase(), 460, gridY + 12);
+
+    gridY += 45;
+
+    // Row 2: Participant Info
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('PARTICIPANT NAME', 55, gridY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(12).text(`${member.name} (${member.age}, ${member.gender})`, 55, gridY + 12);
+
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('BUS / SEAT', 360, gridY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(12).text(`${member.busNumber || 'Bus 1'} / ${member.seatNumber || 'Auto-Assigned'}`, 360, gridY + 12);
+
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('TICKET STATUS', 460, gridY);
+    doc.fillColor('#16A34A').font('Helvetica-Bold').fontSize(12).text('CONFIRMED', 460, gridY + 12);
+
+    gridY += 45;
+
+    // Row 3: Pickup & Timing
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('PICKUP POINT', 55, gridY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(10).text(data.pickupPoint, 55, gridY + 12, { width: 280 });
+
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('REPORTING TIME', 360, gridY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(11).text(data.reportingTime, 360, gridY + 12);
+
+    gridY += 45;
+
+    // Row 4: Coordinator Details
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('TREK COORDINATOR', 55, gridY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(11).text(data.coordinatorName || 'Trek Coordinator', 55, gridY + 12);
+
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('COORDINATOR PHONE', 360, gridY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(11).text(data.coordinatorPhone || settings?.phone || '+91 9322340365', 360, gridY + 12);
+
+    gridY += 45;
+
+    // Divider Line inside card
+    doc.moveTo(41, gridY).lineTo(554, gridY).strokeColor('#E5E7EB').lineWidth(1).stroke();
+
+    gridY += 15;
+
+    // Row 5: Group Roster & Things to Carry
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(10).text('GROUP ROSTER & THINGS TO CARRY', 55, gridY);
+    
+    // Left: Group Roster (list of all booking members)
+    let rosterY = gridY + 15;
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#1F2937').text(`Participants (${data.members.length}):`, 55, rosterY);
+    rosterY += 12;
+    doc.font('Helvetica').fontSize(8.0).fillColor('#4B5563');
+    data.members.forEach((m, idx) => {
+      if (idx < 6) {
+        doc.text(`${idx + 1}. ${m.name} (${m.age}, ${m.gender})`, 55, rosterY);
+        rosterY += 11;
+      } else if (idx === 6) {
+        doc.text(`... and ${data.members.length - 6} more`, 55, rosterY);
+        rosterY += 11;
+      }
+    });
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#1F2937').text(`Total Paid: INR ${data.totalAmount.toFixed(2)}`, 55, rosterY + 4);
+
+    // Right: Things to Carry
+    let carryY = gridY + 15;
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#1F2937').text('THINGS TO CARRY:', 300, carryY);
+    carryY += 12;
+    doc.font('Helvetica').fontSize(8.0).fillColor('#4B5563');
+    data.thingsToCarry.slice(0, 5).forEach((item) => {
+      doc.text(`• ${item}`, 300, carryY, { width: 230 });
+      carryY += 11;
+    });
+
+    // Weather Warning Box
+    doc.fillColor('#FFF7ED').rect(55, gridY + 95, 485, 28).fill();
+    doc.fillColor('#C2410C').font('Helvetica-Bold').fontSize(7.5).text(`🌦 WEATHER NOTES: ${data.weatherReminder || 'Expect moderate monsoon showers. Carry poncho/rainwear.'}`, 65, gridY + 105);
+
+    // --- DASHED DIVIDER ---
+    doc.strokeColor('#F97316').lineWidth(2).dash(5, { space: 3 }).moveTo(40, 510).lineTo(555, 510).stroke().undash();
+
+    // --- TICKET STUB / SECURITY GATE COPY ---
+    // Outer border container
+    doc.roundedRect(40, 530, 515, 230, 10).strokeColor('#1F2937').lineWidth(1.5).stroke();
+
+    // Top Orange Header Bar for Stub
+    doc.fillColor('#1F2937').roundedRect(41, 531, 513, 30, 10).fill();
+    doc.rect(41, 541, 513, 20).fill();
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(10).text('SECURITY GATE AUDIT COPY (STUB)', 55, 542);
+    doc.text('GATE RECEIPT', 460, 542, { align: 'right', width: 80 });
+
+    // Details on Stub
+    let stubY = 575;
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('BOOKING ID', 55, stubY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(11).text(data.bookingId, 55, stubY + 12);
+
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('TICKET ID (SEAT)', 240, stubY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(11).text(`${member.id.substring(0, 8).toUpperCase()} (${member.seatNumber || 'AUTO'})`, 240, stubY + 12);
+
+    stubY += 35;
+
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('PARTICIPANT', 55, stubY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(11).text(member.name, 55, stubY + 12);
+
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('TREK DATE', 240, stubY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(11).text(data.startDate, 240, stubY + 12);
+
+    stubY += 35;
+
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('PICKUP LOCATION', 55, stubY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(9.5).text(data.pickupPoint, 55, stubY + 12, { width: 170 });
+
+    doc.fillColor('#9CA3AF').font('Helvetica-Bold').fontSize(8).text('PAYMENT PAID', 240, stubY);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(11).text(`INR ${(data.totalAmount / data.members.length).toFixed(2)}`, 240, stubY + 12);
+
+    // Cryptographically signed QR Code
+    try {
+      const timestamp = Date.now().toString();
+      const textToSign = `${data.bookingId}|${member.id}|${data.userId}|${data.eventId}|${timestamp}`;
+      const signature = crypto.createHmac('sha256', JWT_SECRET).update(textToSign).digest('hex');
+
+      const qrPayload = JSON.stringify({
+        bookingId: data.bookingId,
+        bookingToken: member.id,
+        userId: data.userId,
+        trekId: data.eventId,
+        timestamp,
+        signature
+      });
+
+      const qrBase64 = await generateQRCode(qrPayload);
+      const qrBuffer = Buffer.from(qrBase64.replace(/^data:image\/png;base64,/, ''), 'base64');
+      doc.image(qrBuffer, 410, 575, { width: 130, height: 130 });
+      doc.fontSize(7.5).fillColor('#9CA3AF').text('SCAN TO BOARD BUS', 438, 715);
+    } catch (err) {
+      console.error('Failed to embed secure QR code in stub:', err);
+    }
+
+    // Emergency Line on Stub
+    doc.fillColor('#C2410C').font('Helvetica-Bold').fontSize(8.5).text(`🚨 EMERGENCY HELPLINE: ${data.emergencyContact || settings?.phone || '+91 9322340365'}`, 55, 740);
+
+    // Footer brand notice
+    doc.fontSize(7.5).fillColor('#9CA3AF').text(`Generated: ${new Date().toLocaleString()} | Powered by ${companyName} CMS System. All Rights Reserved.`, 40, 785, { align: 'center' });
   }
-
-  // Footer banner
-  doc.fontSize(8).fillColor('#9CA3AF').text('TreckWari Adventure Expeditions. Kopargaon, Maharashtra.', 40, 780, { align: 'center' });
 
   return buildPDFBuffer(doc);
 }
@@ -133,8 +253,14 @@ interface CertificateData {
  * Generates a certificate of trekking completion.
  */
 export async function generateCertificatePDF(data: CertificateData): Promise<Buffer> {
-  // Landscape certificate
   const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
+
+  // Load settings
+  const settings = await prisma.organizationSettings.findUnique({
+    where: { id: 'default-settings' }
+  });
+  const companyName = (settings?.companyName || 'TrekWari').toUpperCase();
+  const founder = settings?.founderName || 'Atharva Dhawale';
 
   // Border Frame
   doc.rect(20, 20, 782, 555).strokeColor('#14532D').lineWidth(5).stroke();
@@ -150,7 +276,7 @@ export async function generateCertificatePDF(data: CertificateData): Promise<Buf
   doc.fillColor('#1F2937');
 
   // Certificate Header
-  doc.fontSize(14).font('Helvetica').fillColor('#7C4A21').text('TRECKWARI ADVENTURES & EXPEDITIONS', 40, 90, { align: 'center' });
+  doc.fontSize(14).font('Helvetica').fillColor('#7C4A21').text(`${companyName} ADVENTURES & EXPEDITIONS`, 40, 90, { align: 'center' });
   doc.fontSize(36).font('Helvetica-Bold').fillColor('#14532D').text('CERTIFICATE OF PARTICIPATION', 40, 125, { align: 'center' });
   
   // Award Text
@@ -175,7 +301,7 @@ export async function generateCertificatePDF(data: CertificateData): Promise<Buf
   // Signature lines
   // Left: Founder
   doc.moveTo(120, 480).lineTo(280, 480).strokeColor('#9CA3AF').lineWidth(1).stroke();
-  doc.fontSize(12).font('Helvetica-Bold').fillColor('#1F2937').text('Atharva Dhawale', 120, 490, { width: 160, align: 'center' });
+  doc.fontSize(12).font('Helvetica-Bold').fillColor('#1F2937').text(founder, 120, 490, { width: 160, align: 'center' });
   doc.fontSize(10).font('Helvetica').fillColor('#6B7280').text('Founder & Trek Leader', 120, 505, { width: 160, align: 'center' });
 
   // Middle: QR validation code

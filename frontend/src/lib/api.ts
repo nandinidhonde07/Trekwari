@@ -155,6 +155,7 @@ export const api = {
     resendVerification: (email: string) => apiFetch('/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) }),
     resetPassword: (token: string, newPassword: string) => apiFetch('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password: newPassword }) }),
     uploadAvatar: (avatarBase64: string) => apiFetch('/auth/profile/avatar', { method: 'POST', body: JSON.stringify({ avatar: avatarBase64 }) }),
+    removeAvatar: () => apiFetch('/auth/profile/avatar', { method: 'DELETE' }),
     getSessions: () => apiFetch('/auth/sessions'),
     revokeSession: (id: string) => apiFetch(`/auth/sessions/${id}`, { method: 'DELETE' }),
     logout: (refreshToken?: string) => apiFetch('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
@@ -194,6 +195,10 @@ export const api = {
   // Bookings
   bookings: {
     create: (data: any) => apiFetch('/bookings', { method: 'POST', body: JSON.stringify(data) }),
+    validateCoupon: (code: string, subtotal: number) => apiFetch('/bookings/coupons/validate', { 
+      method: 'POST', 
+      body: JSON.stringify({ code, subtotal }) 
+    }),
     confirmPayment: (bookingId: string, paymentId: string, razorpayOrderId?: string, razorpaySignature?: string) => 
       apiFetch('/bookings/confirm-payment', { 
         method: 'POST', 
@@ -201,7 +206,30 @@ export const api = {
       }),
     myBookings: () => apiFetch('/bookings/my-bookings'),
     verify: (id: string) => apiFetch(`/bookings/verify/${id}`),
-    all: () => apiFetch('/bookings/admin/all')
+    all: () => apiFetch('/bookings/admin/all'),
+    downloadTicketPdf: async (id: string) => {
+      const token = localStorage.getItem('tw_token');
+      const res = await fetch(`${API_URL}/bookings/${id}/ticket/pdf`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) throw new Error('Failed to download ticket PDF');
+      return res.blob();
+    },
+    verifyQR: (qrPayload: any) => apiFetch('/bookings/scan/verify', { method: 'POST', body: JSON.stringify({ qrPayload }) }),
+    checkIn: (bookingMemberId: string, deviceInfo?: string, location?: string) => 
+      apiFetch('/bookings/scan/checkin', { 
+        method: 'POST', 
+        body: JSON.stringify({ bookingMemberId, deviceInfo, location }) 
+      }),
+    getAttendanceStats: (eventId?: string, search?: string) => {
+      const params: any = {};
+      if (eventId) params.eventId = eventId;
+      if (search) params.search = search;
+      const query = new URLSearchParams(params).toString();
+      return apiFetch(`/bookings/admin/attendance-stats${query ? `?${query}` : ''}`);
+    }
   },
 
   // Notifications
@@ -223,7 +251,11 @@ export const api = {
     submit: (slug: string, data: any) => apiFetch(`/events/${slug}/reviews`, { method: 'POST', body: JSON.stringify(data) }),
     getPending: () => apiFetch('/events/admin/reviews/pending'),
     approve: (id: string) => apiFetch(`/events/admin/reviews/${id}/approve`, { method: 'PUT' }),
-    delete: (id: string) => apiFetch(`/events/reviews/${id}`, { method: 'DELETE' })
+    delete: (id: string) => apiFetch(`/events/reviews/${id}`, { method: 'DELETE' }),
+    edit: (id: string, data: any) => apiFetch(`/events/reviews/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    updateStatus: (id: string, data: { pinned?: boolean; hidden?: boolean; replyComment?: string }) => 
+      apiFetch(`/events/admin/reviews/${id}/status`, { method: 'PUT', body: JSON.stringify(data) }),
+    getAnalytics: () => apiFetch('/events/admin/reviews/analytics')
   },
 
   // Trek Leaders
@@ -235,19 +267,44 @@ export const api = {
 
   // Adventure Memories (Mini-Instagram)
   memories: {
-    list: (eventId?: string) => apiFetch(`/memories${eventId ? `?eventId=${eventId}` : ''}`),
+    list: (eventId?: string, search?: string, filterStatus?: string, sortBy?: string) => {
+      let query = '';
+      const params = [];
+      if (eventId) params.push(`eventId=${eventId}`);
+      if (search) params.push(`search=${encodeURIComponent(search)}`);
+      if (filterStatus) params.push(`filterStatus=${filterStatus}`);
+      if (sortBy) params.push(`sortBy=${sortBy}`);
+      if (params.length > 0) query = `?${params.join('&')}`;
+      return apiFetch(`/memories${query}`);
+    },
     create: (data: any) => apiFetch('/memories', { method: 'POST', body: JSON.stringify(data) }),
     toggleLike: (memoryId: string) => apiFetch(`/memories/${memoryId}/like`, { method: 'POST' }),
     comment: (memoryId: string, text: string) => apiFetch(`/memories/${memoryId}/comment`, { method: 'POST', body: JSON.stringify({ text }) }),
-    delete: (id: string) => apiFetch(`/memories/${id}`, { method: 'DELETE' })
+    delete: (id: string) => apiFetch(`/memories/${id}`, { method: 'DELETE' }),
+    toggleHide: (id: string) => apiFetch(`/memories/${id}/toggle-hide`, { method: 'PUT' }),
+    togglePin: (id: string) => apiFetch(`/memories/${id}/toggle-pin`, { method: 'PUT' })
   },
 
   // Blogs
   blogs: {
-    list: () => apiFetch('/blogs'),
+    list: (query?: string) => apiFetch(`/blogs${query ? `?${query}` : ''}`),
+    adminAll: () => apiFetch('/blogs/admin/all'),
     get: (slug: string) => apiFetch(`/blogs/${slug}`),
     create: (data: any) => apiFetch('/blogs', { method: 'POST', body: JSON.stringify(data) }),
-    delete: (id: string) => apiFetch(`/blogs/${id}`, { method: 'DELETE' })
+    update: (id: string, data: any) => apiFetch(`/blogs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    togglePublish: (id: string) => apiFetch(`/blogs/${id}/publish`, { method: 'PATCH' }),
+    toggleFeatured: (id: string) => apiFetch(`/blogs/${id}/featured`, { method: 'PATCH' }),
+    duplicate: (id: string) => apiFetch(`/blogs/${id}/duplicate`, { method: 'POST' }),
+    delete: (id: string) => apiFetch(`/blogs/${id}`, { method: 'DELETE' }),
+    share: (id: string) => apiFetch(`/blogs/${id}/share`, { method: 'POST' }),
+    like: (id: string) => apiFetch(`/blogs/${id}/like`, { method: 'POST' }),
+    versions: (id: string) => apiFetch(`/blogs/${id}/versions`),
+    restoreVersion: (id: string, versionId: string) => apiFetch(`/blogs/${id}/versions/${versionId}/restore`, { method: 'POST' }),
+    categories: () => apiFetch('/blogs/categories'),
+    createCategory: (data: any) => apiFetch('/blogs/categories', { method: 'POST', body: JSON.stringify(data) }),
+    deleteCategory: (id: string) => apiFetch(`/blogs/categories/${id}`, { method: 'DELETE' }),
+    addComment: (id: string, content: string) => apiFetch(`/blogs/${id}/comments`, { method: 'POST', body: JSON.stringify({ content }) }),
+    deleteComment: (commentId: string) => apiFetch(`/blogs/comments/${commentId}`, { method: 'DELETE' })
   },
 
   // Gallery CMS
@@ -276,6 +333,8 @@ export const api = {
         ...(offset && { offset: String(offset) })
       }).toString();
       return apiFetch(`/admin/audit-logs${query ? `?${query}` : ''}`);
-    }
+    },
+    updateUserRole: (id: string, role: string) => apiFetch(`/admin/users/${id}/role`, { method: 'POST', body: JSON.stringify({ role }) }),
+    deleteUser: (id: string) => apiFetch(`/admin/users/${id}`, { method: 'DELETE' })
   }
 };

@@ -152,19 +152,13 @@ export default function Hero() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.6 }}
-            className="pt-4 flex flex-col sm:flex-row gap-4 justify-center items-center"
+            className="pt-6 flex justify-center items-center"
           >
             <a 
               href="#treks"
-              className="w-full sm:w-auto bg-primary-orange hover:bg-orange-600 hover:scale-[1.03] active:scale-[0.97] text-white text-xs font-bold uppercase tracking-widest px-8 py-4 rounded-button shadow-lg shadow-orange-500/20 transition-all cursor-pointer text-center"
+              className="bg-primary-orange hover:bg-orange-600 hover:scale-[1.03] active:scale-[0.97] text-white text-xs font-bold uppercase tracking-widest px-10 py-4 rounded-button shadow-lg shadow-orange-500/20 transition-all cursor-pointer text-center"
             >
               Explore Treks
-            </a>
-            <a 
-              href="#about"
-              className="w-full sm:w-auto bg-white/15 hover:bg-white/25 hover:scale-[1.03] active:scale-[0.97] text-white text-xs font-bold uppercase tracking-widest px-8 py-4 rounded-button border border-white/20 backdrop-blur-md transition-all cursor-pointer text-center"
-            >
-              Watch Video
             </a>
           </motion.div>
         </motion.div>

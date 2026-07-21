@@ -17,11 +17,35 @@ interface SendEmailParams {
 export async function sendEmail({ to, subject, html, attachments }: SendEmailParams): Promise<boolean> {
   console.log(`[Email Outbox] Dispatching mail to: ${to} | Subject: ${subject}`);
 
+  // Fetch dynamic company details
+  let companyName = 'TrekWari';
+  let companyEmail = 'bookings@treckwari.com';
+  let companyLocation = 'Kopargaon, Maharashtra, India';
+
+  try {
+    const { prisma } = require('../lib/prisma');
+    const settings = await prisma.organizationSettings.findUnique({
+      where: { id: 'default-settings' }
+    });
+    if (settings) {
+      companyName = settings.companyName;
+      companyEmail = settings.email;
+      companyLocation = settings.location;
+    }
+  } catch (err) {
+    // Fallback if database is not available
+  }
+
+  // Auto-replace brand keywords in email HTML body
+  const parsedHtml = html
+    .replace(/TreckWari/gi, companyName)
+    .replace(/Kopargaon,\s*Maharashtra,\s*India/gi, companyLocation);
+
   const host = process.env.SMTP_HOST;
   const port = process.env.SMTP_PORT;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.EMAIL_FROM || 'TreckWari <bookings@treckwari.com>';
+  const from = process.env.EMAIL_FROM || `${companyName} <${companyEmail}>`;
 
   const isMock = !host || !user || !pass || host.includes('your_brevo_smtp_key') || user.includes('your_brevo_registered_email');
 
@@ -42,7 +66,7 @@ export async function sendEmail({ to, subject, html, attachments }: SendEmailPar
         from,
         to,
         subject,
-        html,
+        html: parsedHtml,
         attachments: attachments?.map(att => ({
           filename: att.filename,
           content: att.content,
@@ -67,7 +91,7 @@ To: ${to}
 Subject: ${subject}
 Attachment count: ${attachments?.length || 0}
 Body preview:
-${html.replace(/<[^>]*>/g, ' ').substring(0, 400)}...
+${parsedHtml.replace(/<[^>]*>/g, ' ').substring(0, 400)}...
 ========================================================================
   `);
   

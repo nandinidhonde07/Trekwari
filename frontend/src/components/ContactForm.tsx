@@ -1,8 +1,7 @@
-'use client';
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { api } from '../lib/api';
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
@@ -16,6 +15,13 @@ export default function ContactForm() {
 
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    api.settings.get()
+      .then(setSettings)
+      .catch(err => console.error('Failed to load settings in ContactForm:', err));
+  }, []);
 
   const tripsList = [
     'Kalsubai Summit Trek',
@@ -59,20 +65,20 @@ export default function ContactForm() {
             <div className="relative z-10 space-y-8">
               <div>
                 <span className="text-xs uppercase tracking-[0.2em] text-primary-orange font-extrabold">Find Us</span>
-                <h3 className="text-2xl font-extrabold font-display mt-2 text-dark-charcoal">TrekWari Basecamp</h3>
+                <h3 className="text-2xl font-extrabold font-display mt-2 text-dark-charcoal">{settings?.hqName || 'TrekWari Basecamp'}</h3>
                 <p className="text-gray-500 text-xs mt-1 font-semibold leading-relaxed">Stop by or send us a message before booking.</p>
               </div>
 
               {/* HQ Map Iframe */}
               <div className="h-56 w-full rounded-2xl overflow-hidden border border-gray-200/80 shadow-sm bg-white">
                 <iframe 
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15002.570776735165!2d74.46979603099951!3d19.892403759972323!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bdd007d4b4a3a6b%3A0xe5a3c9e6db5837bd!2sKopargaon%2C%20Maharashtra%20423601!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" 
+                  src={settings?.googleMapsEmbed || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15002.570776735165!2d74.46979603099951!3d19.892403759972323!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bdd007d4b4a3a6b%3A0xe5a3c9e6db5837bd!2sKopargaon%2C%20Maharashtra%20423601!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"} 
                   width="100%" 
                   height="100%" 
                   style={{ border: 0 }} 
                   allowFullScreen={false} 
                   loading="lazy"
-                  title="TrekWari Headquarters - Kopargaon, Maharashtra"
+                  title={`${settings?.companyName || 'TrekWari'} Headquarters - ${settings?.city || 'Kopargaon'}, ${settings?.state || 'Maharashtra'}`}
                 />
               </div>
 
@@ -80,21 +86,21 @@ export default function ContactForm() {
               <div className="space-y-4 text-xs sm:text-sm font-sans font-semibold text-gray-650">
                 <div className="flex items-center">
                   <MapPin className="h-5 w-5 mr-4 text-primary-orange flex-shrink-0" />
-                  <span>Kopargaon, Maharashtra, India</span>
+                  <span>{settings?.address ? `${settings.address}, ${settings.city}, ${settings.state} - ${settings.pincode}` : 'Kopargaon, Maharashtra, India'}</span>
                 </div>
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 mr-4 text-primary-orange flex-shrink-0" />
-                  <a href="tel:+919322340365" className="hover:text-primary-orange transition-colors">+91 9322340365</a>
+                  <a href={`tel:${settings?.phone || '+919322340365'}`} className="hover:text-primary-orange transition-colors">{settings?.phone || '+91 9322340365'}</a>
                 </div>
                 <div className="flex items-center">
                   <Mail className="h-4 w-4 mr-4 text-primary-orange flex-shrink-0" />
-                  <a href="mailto:atharvadhawale80@gmail.com" className="hover:text-primary-orange transition-colors truncate">atharvadhawale80@gmail.com</a>
+                  <a href={`mailto:${settings?.email || 'atharvadhawale80@gmail.com'}`} className="hover:text-primary-orange transition-colors truncate">{settings?.email || 'atharvadhawale80@gmail.com'}</a>
                 </div>
               </div>
             </div>
 
             <p className="text-[9px] text-gray-400 mt-12 relative z-10 font-extrabold uppercase tracking-wider">
-              TrekWari HQ © 2026. Atharva Dhawale.
+              {settings?.companyName || 'TrekWari'} HQ © 2026. {settings?.founderName || 'Atharva Dhawale'}.
             </p>
           </div>
 

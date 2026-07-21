@@ -12,6 +12,7 @@ import FAQAccordion from '../components/FAQAccordion';
 import ContactForm from '../components/ContactForm';
 import Footer from '../components/Footer';
 import WhatsAppWidget from '../components/WhatsAppWidget';
+import LatestArticles from '../components/LatestArticles';
 
 export default function Home() {
   return (
@@ -43,6 +44,10 @@ export default function Home() {
 
       <div>
         <Postcards />
+      </div>
+
+      <div id="articles">
+        <LatestArticles />
       </div>
 
       <div id="faqs">

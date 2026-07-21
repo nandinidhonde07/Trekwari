@@ -24,6 +24,8 @@ interface EventData {
   startDate: string;
   location: string;
   images: any;
+  status: string;
+  maxSeats: number;
 }
 
 export default function TreksPage() {
@@ -171,6 +173,24 @@ export default function TreksPage() {
                     ? 'bg-red-50 text-red-600 border-red-100' 
                     : 'bg-orange-50 text-primary-orange border-orange-100';
 
+                  const getStatusBadge = (status: string, availableSeats: number) => {
+                    if (status === 'DRAFT') return { text: 'Draft', className: 'bg-gray-50 text-gray-500 border-gray-200' };
+                    if (status === 'CANCELLED') return { text: 'Cancelled', className: 'bg-red-50 text-red-650 border-red-100' };
+                    if (status === 'COMPLETED') return { text: 'Completed', className: 'bg-blue-50 text-blue-600 border-blue-100' };
+                    if (status === 'ONGOING') return { text: 'Live', className: 'bg-indigo-50 text-indigo-700 border-indigo-100' };
+                    if (status === 'REGISTRATION_CLOSED') return { text: 'Closed', className: 'bg-gray-100 text-gray-600 border-gray-200' };
+                    if (status === 'UPCOMING') return { text: 'Upcoming', className: 'bg-amber-50 text-amber-600 border-amber-100' };
+                    
+                    if (status === 'OPEN_REGISTRATION') {
+                      if (availableSeats === 0) return { text: 'Sold Out', className: 'bg-red-50 text-red-700 border-red-150' };
+                      if (availableSeats > 0 && availableSeats <= 5) return { text: 'Few Seats Left', className: 'bg-amber-50 text-amber-700 border-amber-150' };
+                      return { text: 'Open for Booking', className: 'bg-emerald-50 text-emerald-800 border-emerald-150' };
+                    }
+                    return null;
+                  };
+
+                  const badge = getStatusBadge(trek.status, trek.availableSeats);
+
                   return (
                     <motion.div 
                       key={trek.id}
@@ -191,6 +211,11 @@ export default function TreksPage() {
                           <span className={`absolute top-4 left-4 border text-[8px] uppercase font-extrabold tracking-widest px-2.5 py-1 rounded-[8px] ${difficultyBadgeClass}`}>
                             {trek.difficulty}
                           </span>
+                          {badge && (
+                            <span className={`absolute top-4 right-4 border text-[8px] uppercase font-black tracking-widest px-2.5 py-1 rounded-[8px] ${badge.className}`}>
+                              {badge.text}
+                            </span>
+                          )}
                         </div>
 
                         {/* Details */}

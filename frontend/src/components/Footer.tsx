@@ -37,7 +37,7 @@ export default function Footer() {
         const data = await api.settings.get();
         if (data) {
           setSettings({
-            organizationName: data.organizationName || 'TreckWari',
+            organizationName: data.companyName || data.organizationName || 'TreckWari',
             phone: data.phone || '+91 9322340365',
             email: data.email || 'atharvadhawale80@gmail.com',
             location: data.location || 'Kopargaon, Maharashtra, India',

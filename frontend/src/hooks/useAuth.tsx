@@ -44,6 +44,7 @@ interface AuthContextType {
   getSessions: () => Promise<any[]>;
   revokeSession: (id: string) => Promise<void>;
   uploadAvatar: (avatarBase64: string) => Promise<string>;
+  removeAvatar: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -199,6 +200,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.avatarUrl;
   };
 
+  const removeAvatar = async (): Promise<void> => {
+    await api.auth.removeAvatar();
+    if (user) {
+      setUser({ ...user, avatarUrl: undefined });
+    }
+  };
+
   const isAuthenticated = !!user;
 
   return (
@@ -217,7 +225,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resendVerification,
         getSessions,
         revokeSession,
-        uploadAvatar
+        uploadAvatar,
+        removeAvatar
       }}
     >
       {children}

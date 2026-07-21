@@ -11,6 +11,7 @@ import {
   getProfile, 
   updateProfile, 
   uploadAvatar, 
+  removeAvatar,
   getSessions, 
   revokeSession, 
   logout, 
@@ -33,6 +34,7 @@ router.post('/reset-password', resetPassword);
 router.get('/profile', requireAuth, getProfile);
 router.put('/profile', requireAuth, updateProfile);
 router.post('/profile/avatar', requireAuth, uploadAvatar);
+router.delete('/profile/avatar', requireAuth, removeAvatar);
 router.get('/sessions', requireAuth, getSessions);
 router.delete('/sessions/:id', requireAuth, revokeSession);
 router.post('/logout', logout);

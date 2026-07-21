@@ -3,9 +3,10 @@ import React from 'react';
 interface LogoProps {
   className?: string;
   light?: boolean;
+  companyName?: string;
 }
 
-export default function Logo({ className = '', light = false }: LogoProps) {
+export default function Logo({ className = '', light = false, companyName = 'TrekWari' }: LogoProps) {
   return (
     <div className={`flex items-center gap-2 select-none ${className}`}>
       {/* Circle Icon with Mountain */}
@@ -28,7 +29,7 @@ export default function Logo({ className = '', light = false }: LogoProps) {
           light ? 'text-white' : 'text-gray-900'
         } transition-colors duration-300`}
       >
-        TrekWari
+        {companyName}
       </span>
     </div>
   );

@@ -23,7 +23,7 @@ export default function Navbar() {
   
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [settings, setSettings] = useState({ phone: '+91 9322340365' });
+  const [settings, setSettings] = useState({ phone: '+91 9322340365', companyName: 'TrekWari' });
 
   // Handle scroll tracking
   useEffect(() => {
@@ -45,7 +45,10 @@ export default function Navbar() {
       try {
         const data = await api.settings.get();
         if (data) {
-          setSettings({ phone: data.phone });
+          setSettings({
+            phone: data.phone || '+91 9322340365',
+            companyName: data.companyName || data.organizationName || 'TrekWari'
+          });
         }
       } catch (err) {
         console.error('Navbar settings fetch error:', err);
@@ -120,7 +123,7 @@ export default function Navbar() {
           
           {/* Brand Logo */}
           <Link href="/" className="flex items-center scale-100 hover:scale-102 transition-transform duration-300">
-            <Logo light={isNavbarTransparent} />
+            <Logo light={isNavbarTransparent} companyName={settings.companyName} />
           </Link>
 
           {/* Desktop Nav Links */}

@@ -8,6 +8,11 @@ export default function SafetySection() {
   const [activeModal, setActiveModal] = useState<number | null>(null);
   const [weatherData, setWeatherData] = useState<any>(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    api.settings.get().then(setSettings).catch(console.error);
+  }, []);
 
   // Fetch Live Weather when the Weather modal is opened
   useEffect(() => {
@@ -99,11 +104,11 @@ export default function SafetySection() {
             </div>
             <div>
               <p className="text-sm font-bold font-display text-dark-charcoal">Need Live Emergency Support?</p>
-              <p className="text-xs text-gray-500 font-semibold mt-0.5">Trek leaders can trigger instant SOS alerts directly to our Kopargaon command center.</p>
+              <p className="text-xs text-gray-500 font-semibold mt-0.5">Trek leaders can trigger instant SOS alerts directly to our {settings?.city || 'Kopargaon'} command center.</p>
             </div>
           </div>
           <a 
-            href="tel:+919322340365" 
+            href={`tel:${settings?.emergencyContact || settings?.phone || '+919322340365'}`} 
             className="bg-red-650 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-widest px-6 py-3.5 rounded-button shadow-sm transition-colors cursor-pointer"
           >
             Call HQ Emergency Line

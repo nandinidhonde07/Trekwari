@@ -8,6 +8,7 @@ import Footer from '../../components/Footer';
 import WhatsAppWidget from '../../components/WhatsAppWidget';
 import { useAuth } from '../../hooks/useAuth';
 import { api } from '../../lib/api';
+import { ImageCropModal } from '../../components/ImageCropModal';
 import { 
   User as UserIcon, Calendar, Compass, Award, 
   Settings as SettingsIcon, LogOut, Phone, Shield, Upload, 
@@ -50,7 +51,7 @@ interface SessionData {
 
 export default function UserDashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, loading, logout, logoutAll, refreshUser, updateUserLocal, uploadAvatar } = useAuth();
+  const { user, isAuthenticated, loading, logout, logoutAll, refreshUser, updateUserLocal, uploadAvatar, removeAvatar } = useAuth();
   const { toast } = useToast();
   
   const [activeSubTab, setActiveSubTab] = useState('bookings');
@@ -79,9 +80,30 @@ export default function UserDashboardPage() {
   const [profileSuccess, setProfileSuccess] = useState('');
   const [profileError, setProfileError] = useState('');
 
+  // Airbnb-style Review Form States
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewTrekSlug, setReviewTrekSlug] = useState('');
+  const [reviewTrekTitle, setReviewTrekTitle] = useState('');
+  const [ratingOverall, setRatingOverall] = useState(5);
+  const [ratingExperience, setRatingExperience] = useState(5);
+  const [ratingCoordinator, setRatingCoordinator] = useState(5);
+  const [ratingSafety, setRatingSafety] = useState(5);
+  const [ratingFood, setRatingFood] = useState(5);
+  const [ratingTransport, setRatingTransport] = useState(5);
+  const [ratingDifficulty, setRatingDifficulty] = useState(3);
+  const [ratingValue, setRatingValue] = useState(5);
+  const [wouldRecommend, setWouldRecommend] = useState(true);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewPhotos, setReviewPhotos] = useState<string[]>([]);
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  const [cropImageSrc, setCropImageSrc] = useState('');
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -159,6 +181,86 @@ export default function UserDashboardPage() {
     );
   }
 
+  const handleDownloadTicket = async (bookingId: string) => {
+    try {
+      toast('Generating and downloading airline boarding ticket...', 'success');
+      const blob = await api.bookings.downloadTicketPdf(bookingId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `ticket-${bookingId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast(err.message || 'Failed to download ticket.', 'error');
+    }
+  };
+
+  const handleReviewPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    if (reviewPhotos.length + files.length > 5) {
+      toast('You can upload a maximum of 5 photos for your review.', 'error');
+      return;
+    }
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setReviewPhotos((prev) => [...prev, event.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingReview(true);
+
+    try {
+      await api.reviews.submit(reviewTrekSlug, {
+        rating: ratingOverall,
+        ratingExperience,
+        ratingCoordinator,
+        ratingSafety,
+        ratingFood,
+        ratingTransport,
+        ratingDifficulty,
+        ratingValue,
+        wouldRecommend,
+        title: reviewTitle,
+        comment: reviewComment,
+        images: reviewPhotos,
+        isAnonymous
+      });
+
+      toast('Review submitted successfully! It will show up after moderation.', 'success');
+      setReviewModalOpen(false);
+      // Reset review form
+      setReviewTitle('');
+      setReviewComment('');
+      setReviewPhotos([]);
+      setIsAnonymous(false);
+      setRatingOverall(5);
+      setRatingExperience(5);
+      setRatingCoordinator(5);
+      setRatingSafety(5);
+      setRatingFood(5);
+      setRatingTransport(5);
+      setRatingDifficulty(3);
+      setRatingValue(5);
+      setWouldRecommend(true);
+    } catch (err: any) {
+      toast(err.message || 'Failed to submit review.', 'error');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileSuccess('');
@@ -213,22 +315,43 @@ export default function UserDashboardPage() {
     }
 
     setPhotoError('');
-    setIsUploadingPhoto(true);
-
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = async () => {
-      try {
-        const base64 = reader.result as string;
-        await uploadAvatar(base64);
-        setProfileSuccess('Profile picture updated successfully!');
-        refreshUser();
-      } catch (err: any) {
-        setPhotoError(err.message || 'Failed to upload image.');
-      } finally {
-        setIsUploadingPhoto(false);
-      }
+    reader.onload = () => {
+      setCropImageSrc(reader.result as string);
+      setIsCropModalOpen(true);
+      if (e.target) e.target.value = ''; // Reset file input value
     };
+  };
+
+  const handleCropComplete = async (croppedBase64: string) => {
+    setIsCropModalOpen(false);
+    setIsUploadingPhoto(true);
+    setPhotoError('');
+    try {
+      await uploadAvatar(croppedBase64);
+      setProfileSuccess('Profile picture updated successfully!');
+      refreshUser();
+    } catch (err: any) {
+      setPhotoError(err.message || 'Failed to upload cropped image.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!confirm('Are you sure you want to remove your profile picture?')) return;
+    setIsUploadingPhoto(true);
+    setPhotoError('');
+    try {
+      await removeAvatar();
+      setProfileSuccess('Profile picture removed successfully!');
+      refreshUser();
+    } catch (err: any) {
+      setPhotoError(err.message || 'Failed to remove profile picture.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   const handleRevokeSession = async (sessionId: string) => {
@@ -287,25 +410,36 @@ export default function UserDashboardPage() {
           <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
             
             {/* Avatar block with upload trigger */}
-            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-              <div className="h-20 w-20 rounded-full border-2 border-primary-orange overflow-hidden bg-gray-50 flex items-center justify-center font-bold text-dark-charcoal text-3xl shadow-sm">
-                {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  user.name.charAt(0)
-                )}
+            <div className="flex flex-col items-center font-sans">
+              <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                <div className="h-20 w-20 rounded-full border-2 border-primary-orange overflow-hidden bg-gray-50 flex items-center justify-center font-bold text-dark-charcoal text-3xl shadow-sm">
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    user.name.charAt(0)
+                  )}
+                </div>
+                <div className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-[9px] uppercase tracking-wider text-white font-bold transition-all">
+                  <Upload className="h-4 w-4 text-primary-orange mb-1" />
+                  <span>Upload</span>
+                </div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handlePhotoSelect} 
+                />
               </div>
-              <div className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-[9px] uppercase tracking-wider text-white font-bold transition-all">
-                <Upload className="h-4 w-4 text-primary-orange mb-1" />
-                <span>Upload</span>
-              </div>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept="image/*" 
-                onChange={handlePhotoSelect} 
-              />
+              {user.avatarUrl && (
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="mt-2 text-[9px] font-black uppercase text-red-500 hover:underline cursor-pointer border-none bg-transparent"
+                >
+                  Remove Photo
+                </button>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -450,7 +584,7 @@ export default function UserDashboardPage() {
                                   View Details
                                 </Link>
                                 <button 
-                                  onClick={() => toast(`Downloading Ticket PDF for ID: ${b.bookingId}...`, 'success')}
+                                  onClick={() => handleDownloadTicket(b.id)}
                                   className="bg-primary-orange hover:bg-orange-600 text-white font-bold text-[10px] uppercase tracking-wider px-4 py-2 rounded-xl shadow-sm transition-colors cursor-pointer"
                                 >
                                   Ticket PDF
@@ -484,16 +618,28 @@ export default function UserDashboardPage() {
                                   <p className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-gray-400" /> Completed: {new Date(b.event.startDate).toLocaleDateString()}</p>
                                 </div>
                               </div>
-                              <div className="pt-4 border-t border-gray-150/60 mt-4 flex items-center justify-between">
+                              <div className="pt-4 border-t border-gray-150/60 mt-4 flex items-center justify-between gap-2">
                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1">
                                   <Award className="h-4 w-4 text-primary-orange" /> Certificate Issued
                                 </span>
-                                <button 
-                                  onClick={() => toast(`Downloading certificate for event: ${b.event.title}...`, 'success')}
-                                  className="bg-dark-charcoal text-white hover:bg-black font-bold text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl transition-colors cursor-pointer"
-                                >
-                                  Download PDF
-                                </button>
+                                <div className="flex gap-2">
+                                  <button 
+                                    onClick={() => {
+                                      setReviewTrekSlug(b.event.slug);
+                                      setReviewTrekTitle(b.event.title);
+                                      setReviewModalOpen(true);
+                                    }}
+                                    className="bg-primary-orange hover:bg-orange-600 text-white font-bold text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl transition-colors cursor-pointer"
+                                  >
+                                    Write Review
+                                  </button>
+                                  <button 
+                                    onClick={() => toast(`Downloading certificate for event: ${b.event.title}...`, 'success')}
+                                    className="bg-dark-charcoal text-white hover:bg-black font-bold text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl transition-colors cursor-pointer"
+                                  >
+                                    Download PDF
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -753,6 +899,277 @@ export default function UserDashboardPage() {
         </div>
       </section>
 
+      {reviewModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-xl w-full border border-gray-150 shadow-2xl p-6 sm:p-8 space-y-6 relative max-h-[90vh] overflow-y-auto no-scrollbar">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="text-base font-extrabold text-dark-charcoal font-display uppercase tracking-wider">Submit Trek Review</h3>
+                <p className="text-[10px] text-gray-400 font-semibold mt-0.5">Share your experience on: {reviewTrekTitle}</p>
+              </div>
+              <button 
+                onClick={() => setReviewModalOpen(false)}
+                className="text-gray-400 hover:text-dark-charcoal font-bold text-xs uppercase cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <form onSubmit={handleReviewSubmit} className="space-y-5">
+              {/* Star Ratings Grid */}
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                {/* Overall */}
+                <div className="col-span-2 flex justify-between items-center pb-2 border-b border-gray-200/60">
+                  <span className="text-xs font-bold text-dark-charcoal">Overall Rating ⭐</span>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        type="button"
+                        key={val}
+                        onClick={() => setRatingOverall(val)}
+                        className={`text-lg transition-transform hover:scale-110 cursor-pointer ${
+                          val <= ratingOverall ? 'text-yellow-400' : 'text-gray-200'
+                        }`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Experience */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-gray-500">Trek Experience</span>
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        type="button"
+                        key={val}
+                        onClick={() => setRatingExperience(val)}
+                        className={`text-xs cursor-pointer ${val <= ratingExperience ? 'text-yellow-400' : 'text-gray-200'}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Coordinator */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-gray-500">Trek Coordinator</span>
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        type="button"
+                        key={val}
+                        onClick={() => setRatingCoordinator(val)}
+                        className={`text-xs cursor-pointer ${val <= ratingCoordinator ? 'text-yellow-400' : 'text-gray-200'}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Safety */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-gray-500">Safety</span>
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        type="button"
+                        key={val}
+                        onClick={() => setRatingSafety(val)}
+                        className={`text-xs cursor-pointer ${val <= ratingSafety ? 'text-yellow-400' : 'text-gray-200'}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Food */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-gray-500">Food</span>
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        type="button"
+                        key={val}
+                        onClick={() => setRatingFood(val)}
+                        className={`text-xs cursor-pointer ${val <= ratingFood ? 'text-yellow-400' : 'text-gray-200'}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Transport */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-gray-500">Transportation</span>
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        type="button"
+                        key={val}
+                        onClick={() => setRatingTransport(val)}
+                        className={`text-xs cursor-pointer ${val <= ratingTransport ? 'text-yellow-400' : 'text-gray-200'}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Value */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-gray-500">Value for Money</span>
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <button
+                        type="button"
+                        key={val}
+                        onClick={() => setRatingValue(val)}
+                        className={`text-xs cursor-pointer ${val <= ratingValue ? 'text-yellow-400' : 'text-gray-200'}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Difficulty Select */}
+                <div className="col-span-2 grid grid-cols-2 gap-4 pt-2 border-t border-gray-200/60 mt-1">
+                  <div className="space-y-1">
+                    <span className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">Trek Difficulty</span>
+                    <select
+                      value={ratingDifficulty}
+                      onChange={(e) => setRatingDifficulty(parseInt(e.target.value))}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-600 focus:outline-none"
+                    >
+                      <option value="1">1 - Very Easy</option>
+                      <option value="2">2 - Easy</option>
+                      <option value="3">3 - Moderate</option>
+                      <option value="4">4 - Strenuous</option>
+                      <option value="5">5 - Extreme</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">Recommend?</span>
+                    <select
+                      value={wouldRecommend ? 'yes' : 'no'}
+                      onChange={(e) => setWouldRecommend(e.target.value === 'yes')}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-600 focus:outline-none"
+                    >
+                      <option value="yes">Yes, Highly Recommend</option>
+                      <option value="no">No, Would Not Recommend</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Review Title */}
+              <div className="space-y-1">
+                <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">Review Title</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Summarize your experience (e.g. Breathtaking views, great leadership!)"
+                  value={reviewTitle}
+                  onChange={(e) => setReviewTitle(e.target.value)}
+                  className="w-full border border-gray-200 bg-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                />
+              </div>
+
+              {/* Review Comment */}
+              <div className="space-y-1">
+                <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">Detailed Review</label>
+                <textarea
+                  required
+                  placeholder="Share details of your trek, coordination, safety precautions, food quality..."
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  className="w-full border border-gray-250 bg-white rounded-xl p-4 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                  rows={3}
+                />
+              </div>
+
+              {/* Photos Uploader */}
+              <div className="space-y-2">
+                <label className="block text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">Trek Photos (Up to 5)</label>
+                <div className="flex items-center gap-3">
+                  <label className="border border-dashed border-gray-300 hover:border-orange-500 bg-gray-50 hover:bg-orange-50/10 p-4 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all w-24 h-20 shrink-0">
+                    <span className="text-[10px] font-bold text-gray-500">Add Photos</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleReviewPhotoUpload}
+                      className="hidden"
+                      disabled={reviewPhotos.length >= 5}
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-2 overflow-x-auto">
+                    {reviewPhotos.map((photo, idx) => (
+                      <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-150 shrink-0">
+                        <img src={photo} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setReviewPhotos((prev) => prev.filter((_, i) => i !== idx))}
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-700 shadow-md border-none cursor-pointer"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Anonymous Checkbox */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="anonymous-check"
+                  checked={isAnonymous}
+                  onChange={(e) => setIsAnonymous(e.target.checked)}
+                  className="accent-primary-orange h-4 w-4 rounded cursor-pointer animate-in fade-in"
+                />
+                <label htmlFor="anonymous-check" className="select-none text-xs font-semibold text-gray-500 cursor-pointer">
+                  Submit anonymously (Hides your name and avatar)
+                </label>
+              </div>
+
+              {/* Submit Actions */}
+              <div className="flex gap-3 justify-end pt-3">
+                <button
+                  type="button"
+                  onClick={() => setReviewModalOpen(false)}
+                  className="px-4 py-2 bg-white border border-gray-200 text-xs font-bold rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReview || !reviewComment.trim() || !reviewTitle.trim()}
+                  className="px-6 py-2 bg-primary-orange hover:bg-orange-600 text-white text-xs font-bold rounded-xl cursor-pointer shadow-md shadow-orange-500/10 transition-colors disabled:opacity-50"
+                >
+                  {submittingReview ? 'Submitting...' : 'Post Review'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <ImageCropModal 
+        isOpen={isCropModalOpen} 
+        imageSrc={cropImageSrc} 
+        onClose={() => setIsCropModalOpen(false)} 
+        onCropComplete={handleCropComplete} 
+      />
       <Footer />
     </div>
   );

@@ -5,22 +5,27 @@ import { api } from '../lib/api';
 
 export default function WhatsAppWidget() {
   const [phoneNumber, setPhoneNumber] = useState('9322340365');
+  const [companyName, setCompanyName] = useState('TrekWari');
   const [showTooltip, setShowTooltip] = useState(false);
 
   useEffect(() => {
-    async function loadPhone() {
+    async function loadSettings() {
       try {
         const data = await api.settings.get();
-        if (data && data.whatsapp) {
-          // Strip non-numbers
-          const cleaned = data.whatsapp.replace(/\D/g, '');
-          setPhoneNumber(cleaned.length === 10 ? `91${cleaned}` : cleaned);
+        if (data) {
+          if (data.whatsapp) {
+            const cleaned = data.whatsapp.replace(/\D/g, '');
+            setPhoneNumber(cleaned.length === 10 ? `91${cleaned}` : cleaned);
+          }
+          if (data.companyName || data.organizationName) {
+            setCompanyName(data.companyName || data.organizationName);
+          }
         }
       } catch (err) {
         console.error('WhatsApp widget settings load error:', err);
       }
     }
-    loadPhone();
+    loadSettings();
 
     // Trigger tooltip helper after 3 seconds
     const timer = setTimeout(() => {
@@ -29,7 +34,7 @@ export default function WhatsAppWidget() {
     return () => clearTimeout(timer);
   }, []);
 
-  const waUrl = `https://wa.me/${phoneNumber}?text=Hello%20TreckWari!%20I%20am%20interested%20in%20inquiring%20about%20your%20upcoming%20adventure%20trekking%20expeditions.`;
+  const waUrl = `https://wa.me/${phoneNumber}?text=Hello%20${encodeURIComponent(companyName)}!%20I%20am%20interested%20in%20inquiring%20about%20your%20upcoming%20adventure%20trekking%20expeditions.`;
 
   return (
     <div className="fixed bottom-6 right-6 z-40 flex items-center">

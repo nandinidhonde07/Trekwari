@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../lib/api';
 import { useToast } from './ui/toast';
+import { useAuth } from '../hooks/useAuth';
 import { 
   Plus, Trash2, Copy, ArrowUp, ArrowDown, Eye, Edit, Save, Upload, X, 
   Search, Filter, Download, ChevronDown, ChevronUp, Users, Calendar, 
@@ -168,6 +169,8 @@ function RichTextEditor({
 
 export function TrekCMSManager({ policies, onRefreshStats }: TrekCMSManagerProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   
   // Tabs for the Trek list and form editor
   const [activeSubTab, setActiveSubTab] = useState<'ALL' | 'DRAFT' | 'ARCHIVED' | 'NEW'>('ALL');
@@ -230,6 +233,14 @@ export function TrekCMSManager({ policies, onRefreshStats }: TrekCMSManagerProps
   const [pickupPoints, setPickupPoints] = useState<any[]>([]);
   const [policyId, setPolicyId] = useState('');
   
+  // Operational CMS Logistics states
+  const [coordinatorName, setCoordinatorName] = useState('');
+  const [coordinatorPhone, setCoordinatorPhone] = useState('');
+  const [trekLeaderName, setTrekLeaderName] = useState('');
+  const [assistantLeadersText, setAssistantLeadersText] = useState('');
+  const [busNumber, setBusNumber] = useState('Bus 1');
+  const [weatherNotes, setWeatherNotes] = useState('');
+
   // SEO & FAQs
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
@@ -481,7 +492,13 @@ export function TrekCMSManager({ policies, onRefreshStats }: TrekCMSManagerProps
       endPoint,
       googleMapsUrl,
       leaderIds: selectedLeaderIds,
-      policyId: policyId || null
+      policyId: policyId || null,
+      coordinatorName,
+      coordinatorPhone,
+      trekLeaderName,
+      assistantLeaders: JSON.stringify(assistantLeadersText.split(',').map((s: string) => s.trim()).filter(Boolean)),
+      busNumber,
+      weatherNotes
     };
 
     try {
@@ -532,6 +549,12 @@ export function TrekCMSManager({ policies, onRefreshStats }: TrekCMSManagerProps
     setPolicyId('');
     setMetaTitle('');
     setMetaDescription('');
+    setCoordinatorName('');
+    setCoordinatorPhone('');
+    setTrekLeaderName('');
+    setAssistantLeadersText('');
+    setBusNumber('Bus 1');
+    setWeatherNotes('');
   };
 
   const handleEditTrekClick = (trek: any) => {
@@ -570,6 +593,20 @@ export function TrekCMSManager({ policies, onRefreshStats }: TrekCMSManagerProps
     setPickupPoints(trek.pickupPoints || []);
     setPolicyId(trek.policyId || '');
     setStatusFilter(trek.status);
+    setCoordinatorName(trek.coordinatorName || '');
+    setCoordinatorPhone(trek.coordinatorPhone || '');
+    setTrekLeaderName(trek.trekLeaderName || '');
+    if (trek.assistantLeaders) {
+      try {
+        setAssistantLeadersText(JSON.parse(trek.assistantLeaders).join(', '));
+      } catch {
+        setAssistantLeadersText(trek.assistantLeaders);
+      }
+    } else {
+      setAssistantLeadersText('');
+    }
+    setBusNumber(trek.busNumber || 'Bus 1');
+    setWeatherNotes(trek.weatherNotes || '');
     
     setStep(1);
     setActiveSubTab('NEW'); // Switch to editor mode
@@ -771,14 +808,16 @@ export function TrekCMSManager({ policies, onRefreshStats }: TrekCMSManagerProps
                         >
                           <Copy className="h-3.5 w-3.5" />
                         </button>
-                        <button 
-                          type="button"
-                          onClick={() => handleDeleteTrek(t.id)} 
-                          className="p-2 border border-gray-200 hover:border-red-650 text-gray-500 hover:text-red-650 rounded-xl transition-all cursor-pointer bg-white"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        {isSuperAdmin && (
+                          <button 
+                            type="button"
+                            onClick={() => handleDeleteTrek(t.id)} 
+                            className="p-2 border border-gray-200 hover:border-red-650 text-gray-500 hover:text-red-650 rounded-xl transition-all cursor-pointer bg-white"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1000,6 +1039,75 @@ export function TrekCMSManager({ policies, onRefreshStats }: TrekCMSManagerProps
                       value={waitingSeats}
                       onChange={(e) => setWaitingSeats(parseInt(e.target.value))}
                       className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-bold text-dark-charcoal"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Trek Coordinator Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Atharva Dhawale"
+                      value={coordinatorName}
+                      onChange={(e) => setCoordinatorName(e.target.value)}
+                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Coordinator Phone Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. +91 9322340365"
+                      value={coordinatorPhone}
+                      onChange={(e) => setCoordinatorPhone(e.target.value)}
+                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Main Trek Leader</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Atharva Dhawale"
+                      value={trekLeaderName}
+                      onChange={(e) => setTrekLeaderName(e.target.value)}
+                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Assistant Leaders (Comma separated)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Leader A, Leader B"
+                      value={assistantLeadersText}
+                      onChange={(e) => setAssistantLeadersText(e.target.value)}
+                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Bus / Vehicle Designation</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Bus 1"
+                      value={busNumber}
+                      onChange={(e) => setBusNumber(e.target.value)}
+                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Weather & Climate Advisory Notes</label>
+                    <textarea
+                      placeholder="Expect monsoon showers, carry raincoats..."
+                      value={weatherNotes}
+                      onChange={(e) => setWeatherNotes(e.target.value)}
+                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
+                      rows={2}
                     />
                   </div>
                 </div>

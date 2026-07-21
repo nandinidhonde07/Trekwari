@@ -76,8 +76,36 @@ export default function TrekDetailsPage() {
   const [emergencyContact, setEmergencyContact] = useState('');
   const [medicalDetails, setMedicalDetails] = useState('');
   const [waiverAccepted, setWaiverAccepted] = useState(false);
-  const [members, setMembers] = useState<Array<{ name: string; age: number; gender: string; phone?: string }>>([
-    { name: '', age: 20, gender: 'Male', phone: '' }
+  const [members, setMembers] = useState<Array<{
+    name: string;
+    age: number;
+    gender: string;
+    phone: string;
+    email: string;
+    bloodGroup: string;
+    emergencyName: string;
+    emergencyPhone: string;
+    medicalConditions: string;
+    allergies: string;
+    fitnessLevel: string;
+    idProofType: string;
+    idProofNumber: string;
+  }>>([
+    {
+      name: '',
+      age: 20,
+      gender: 'Male',
+      phone: '',
+      email: '',
+      bloodGroup: 'O+',
+      emergencyName: '',
+      emergencyPhone: '',
+      medicalConditions: '',
+      allergies: '',
+      fitnessLevel: 'Average',
+      idProofType: 'Aadhaar',
+      idProofNumber: ''
+    }
   ]);
   const [bookingError, setBookingError] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState<any>(null);
@@ -86,11 +114,22 @@ export default function TrekDetailsPage() {
   const [emergencyRelationship, setEmergencyRelationship] = useState('');
   const [bloodGroup, setBloodGroup] = useState('O+');
   const [allergies, setAllergies] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [fitnessDeclared, setFitnessDeclared] = useState(false);
-  const [riskAcknowledged, setRiskAcknowledged] = useState(false);
-  const [instructionsAgreed, setInstructionsAgreed] = useState(false);
+  
+  // 7 Mandatory Terms & Conditions Checkboxes
+  const [checkFit, setCheckFit] = useState(false);
+  const [checkCancel, setCheckCancel] = useState(false);
+  const [checkRisks, setCheckRisks] = useState(false);
+  const [checkMedia, setCheckMedia] = useState(false);
+  const [checkId, setCheckId] = useState(false);
+  const [checkInstructions, setCheckInstructions] = useState(false);
+  const [checkTerms, setCheckTerms] = useState(false);
+  
   const [guardianPermitted, setGuardianPermitted] = useState(false);
+  const [expandedMemberIndex, setExpandedMemberIndex] = useState(0);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError] = useState('');
+  const [couponApplied, setCouponApplied] = useState(false);
   const [policyActiveSubTab, setPolicyActiveSubTab] = useState<'waiver' | 'terms' | 'cancellation' | 'privacy'>('waiver');
 
   // Review Form States
@@ -111,7 +150,21 @@ export default function TrekDetailsPage() {
         const data = await api.events.get(String(slug));
         setTrek(data);
         if (user) {
-          setMembers([{ name: user.name, age: 20, gender: 'Male', phone: '' }]);
+          setMembers([{
+            name: user.name || '',
+            age: 20,
+            gender: 'Male',
+            phone: user.phone || '',
+            email: user.email || '',
+            bloodGroup: 'O+',
+            emergencyName: '',
+            emergencyPhone: '',
+            medicalConditions: '',
+            allergies: '',
+            fitnessLevel: 'Average',
+            idProofType: 'Aadhaar',
+            idProofNumber: ''
+          }]);
         }
       } catch (err) {
         console.error('Failed to load trek details:', err);
@@ -176,7 +229,21 @@ export default function TrekDetailsPage() {
     const newMembers = [...members];
     if (count > newMembers.length) {
       for (let i = newMembers.length; i < count; i++) {
-        newMembers.push({ name: '', age: 20, gender: 'Male', phone: '' });
+        newMembers.push({
+          name: '',
+          age: 20,
+          gender: 'Male',
+          phone: '',
+          email: '',
+          bloodGroup: 'O+',
+          emergencyName: '',
+          emergencyPhone: '',
+          medicalConditions: '',
+          allergies: '',
+          fitnessLevel: 'Average',
+          idProofType: 'Aadhaar',
+          idProofNumber: ''
+        });
       }
     } else {
       newMembers.length = count;
@@ -190,6 +257,23 @@ export default function TrekDetailsPage() {
     setMembers(newMembers);
   };
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponError('');
+    try {
+      const res = await api.bookings.validateCoupon(couponCode, trek.price * seatCount);
+      if (res.valid) {
+        setCouponDiscount(res.discount);
+        setCouponApplied(true);
+        toast('Coupon discount applied successfully!', 'success');
+      }
+    } catch (err: any) {
+      setCouponError(err.message || 'Invalid coupon code.');
+      setCouponDiscount(0);
+      setCouponApplied(false);
+    }
+  };
+
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBookingError('');
@@ -200,25 +284,41 @@ export default function TrekDetailsPage() {
     }
 
     if (checkoutStep === 1) {
+      if (seatCount > trek.availableSeats) {
+        setBookingError(`Only ${trek.availableSeats} seats are available.`);
+        return;
+      }
       setCheckoutStep(2);
       return;
     }
 
     if (checkoutStep === 2) {
-      const emptyMember = members.some(m => !m.name.trim());
-      if (emptyMember) {
-        setBookingError('Please fill out the names of all participants.');
-        return;
-      }
-      const invalidAge = members.some(m => !m.age || m.age <= 0);
-      if (invalidAge) {
-        setBookingError('Please enter a valid age for all participants.');
-        return;
-      }
-      const emptyPhone = members.some(m => !m.phone || !m.phone.trim());
-      if (emptyPhone) {
-        setBookingError('Please fill out the phone numbers of all participants.');
-        return;
+      for (let i = 0; i < members.length; i++) {
+        const m = members[i];
+        if (!m.name.trim()) {
+          setBookingError(`Hiker ${i + 1}: Full Name is required.`);
+          return;
+        }
+        if (!m.age || m.age <= 0) {
+          setBookingError(`Hiker ${i + 1}: Age must be positive.`);
+          return;
+        }
+        if (!m.phone.trim()) {
+          setBookingError(`Hiker ${i + 1}: Phone number is required.`);
+          return;
+        }
+        if (!m.email.trim() || !m.email.includes('@')) {
+          setBookingError(`Hiker ${i + 1}: Valid Email is required.`);
+          return;
+        }
+        if (!m.emergencyName.trim() || !m.emergencyPhone.trim()) {
+          setBookingError(`Hiker ${i + 1}: Emergency SOS contact info is required.`);
+          return;
+        }
+        if (!m.idProofNumber.trim()) {
+          setBookingError(`Hiker ${i + 1}: ID Proof Number is required.`);
+          return;
+        }
       }
       setCheckoutStep(3);
       return;
@@ -229,8 +329,8 @@ export default function TrekDetailsPage() {
         setBookingError('All Emergency Contact details (Name, Phone, Relationship) are mandatory.');
         return;
       }
-      if (!waiverAccepted || !termsAccepted || !fitnessDeclared || !riskAcknowledged || !instructionsAgreed) {
-        setBookingError('You must read and agree to all terms and declarations to proceed.');
+      if (!checkFit || !checkCancel || !checkRisks || !checkMedia || !checkId || !checkInstructions || !checkTerms) {
+        setBookingError('You must check and agree to all 7 terms and safety declarations to proceed.');
         return;
       }
       const hasUnder18 = members.some((m: any) => parseInt(m.age as any) < 18);
@@ -254,6 +354,7 @@ export default function TrekDetailsPage() {
           riskAcknowledged: true,
           instructionsAgreed: true,
           guardianPermitted: hasUnder18 ? true : null,
+          couponCode: couponApplied ? couponCode : null,
           members
         });
 
@@ -386,6 +487,31 @@ export default function TrekDetailsPage() {
             <span className="bg-orange-50 text-primary-orange text-[9px] uppercase font-extrabold tracking-widest px-3 py-1 rounded-[8px]">
               {trek.difficulty}
             </span>
+            {(() => {
+              const getStatusBadge = (status: string, availableSeats: number) => {
+                if (status === 'DRAFT') return { text: 'Draft', className: 'bg-gray-50 text-gray-500 border-gray-200' };
+                if (status === 'CANCELLED') return { text: 'Cancelled', className: 'bg-red-50 text-red-650 border-red-100' };
+                if (status === 'COMPLETED') return { text: 'Completed', className: 'bg-blue-50 text-blue-600 border-blue-100' };
+                if (status === 'ONGOING') return { text: 'Live', className: 'bg-indigo-50 text-indigo-700 border-indigo-100' };
+                if (status === 'REGISTRATION_CLOSED') return { text: 'Closed', className: 'bg-gray-100 text-gray-600 border-gray-200' };
+                if (status === 'UPCOMING') return { text: 'Upcoming', className: 'bg-amber-50 text-amber-600 border-amber-100' };
+                
+                if (status === 'OPEN_REGISTRATION') {
+                  if (availableSeats === 0) return { text: 'Sold Out', className: 'bg-red-50 text-red-700 border-red-150' };
+                  if (availableSeats > 0 && availableSeats <= 5) return { text: 'Few Seats Left', className: 'bg-amber-50 text-amber-700 border-amber-150' };
+                  return { text: 'Open for Booking', className: 'bg-emerald-50 text-emerald-800 border-emerald-150' };
+                }
+                return null;
+              };
+
+              const badge = getStatusBadge(trek.status, trek.availableSeats);
+              if (!badge) return null;
+              return (
+                <span className={`text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-[8px] border ${badge.className}`}>
+                  {badge.text}
+                </span>
+              );
+            })()}
             <span className="flex items-center gap-1.5 text-xs font-bold text-dark-charcoal">
               <Star className="h-4 w-4 fill-primary-orange text-primary-orange" />
               <span>4.9 (24 Hiker reviews)</span>
@@ -714,34 +840,7 @@ export default function TrekDetailsPage() {
               )}
             </motion.section>
 
-            {/* Map & Coordinates */}
-            <motion.section 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="space-y-4 pt-8 border-t border-gray-100"
-            >
-              <h3 className="text-xl sm:text-2xl font-extrabold text-dark-charcoal font-display">Trail Map</h3>
-              <div className="h-64 sm:h-96 w-full rounded-2xl overflow-hidden border border-gray-150">
-                <iframe 
-                  src={trek.googleMapsUrl || `https://maps.google.com/maps?q=${encodeURIComponent(trek.location || '')}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
-                  width="100%" 
-                  height="100%" 
-                  style={{ border: 0 }} 
-                  allowFullScreen={false} 
-                  loading="lazy"
-                  title={trek.title}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-gray-650 bg-gray-50 p-4 rounded-xl">
-                <div>
-                  <strong>Meeting Point:</strong> {trek.meetingPoint || 'Kopargaon Bus Stand'}
-                </div>
-                <div>
-                  <strong>End Point:</strong> {trek.endPoint || 'Kopargaon Bus Stand'}
-                </div>
-              </div>
-            </motion.section>
+
 
             {/* Roster Leaders */}
             <motion.section 
@@ -1076,52 +1175,222 @@ export default function TrekDetailsPage() {
                   {/* Step 2: Member roster details */}
                   {checkoutStep === 2 && (
                     <div className="space-y-5 animate-in fade-in duration-200">
-                      <p className="text-xs font-semibold text-gray-500">Provide the names and details of all hikers in your group:</p>
-                      <div className="space-y-6 overflow-y-auto max-h-[50vh] pr-2 no-scrollbar">
-                        {members.map((member, idx) => (
-                          <div key={idx} className="p-5 bg-gray-50 rounded-[20px] border border-gray-100 space-y-4">
-                            <p className="text-xs font-extrabold text-primary-orange uppercase tracking-wider">Hiker {idx + 1} {idx === 0 ? '(Primary Contact)' : ''}</p>
-                            
-                            <div className="space-y-3">
-                              <input
-                                type="text"
-                                required
-                                value={member.name}
-                                onChange={(e) => handleMemberChange(idx, 'name', e.target.value)}
-                                placeholder="Full Name (as per ID)"
-                                className="w-full border border-gray-250 bg-white rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-orange focus:ring-1 focus:ring-primary-orange font-semibold"
-                              />
-                              <input
-                                type="tel"
-                                required
-                                value={member.phone || ''}
-                                onChange={(e) => handleMemberChange(idx, 'phone', e.target.value)}
-                                placeholder="Active Mobile Number"
-                                className="w-full border border-gray-250 bg-white rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-orange focus:ring-1 focus:ring-primary-orange font-semibold"
-                              />
-                              <div className="grid grid-cols-2 gap-4">
-                                <input
-                                  type="number"
-                                  required
-                                  min="1"
-                                  value={member.age}
-                                  onChange={(e) => handleMemberChange(idx, 'age', parseInt(e.target.value))}
-                                  placeholder="Age"
-                                  className="w-full border border-gray-250 bg-white rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-primary-orange focus:ring-1 focus:ring-primary-orange font-semibold"
-                                />
-                                <select
-                                  value={member.gender}
-                                  onChange={(e) => handleMemberChange(idx, 'gender', e.target.value)}
-                                  className="w-full border border-gray-250 bg-white rounded-xl px-3 py-3 text-xs focus:outline-none focus:border-primary-orange focus:ring-1 focus:ring-primary-orange font-semibold"
-                                >
-                                  <option value="Male">Male</option>
-                                  <option value="Female">Female</option>
-                                  <option value="Other">Other</option>
-                                </select>
+                      <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <span className="text-xs font-bold text-dark-charcoal">Roster Progress Tracker</span>
+                        <span className="text-xs font-extrabold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-100">
+                          {members.filter(m => !!(m.name?.trim() && m.age && m.phone?.trim() && m.email?.trim() && m.idProofNumber?.trim())).length} / {seatCount} Completed
+                        </span>
+                      </div>
+
+                      <div className="space-y-4 overflow-y-auto max-h-[50vh] pr-2 no-scrollbar">
+                        {members.map((member, idx) => {
+                          const isComplete = !!(member.name?.trim() && member.age && member.gender && member.phone?.trim() && member.email?.trim() && member.emergencyName?.trim() && member.emergencyPhone?.trim() && member.idProofNumber?.trim());
+                          const isExpanded = expandedMemberIndex === idx;
+
+                          return (
+                            <div key={idx} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
+                              {/* Accordion Trigger Header */}
+                              <div
+                                onClick={() => setExpandedMemberIndex(isExpanded ? -1 : idx)}
+                                className={`p-4 flex justify-between items-center cursor-pointer transition-colors ${
+                                  isExpanded ? 'bg-orange-50/20 border-b border-gray-100' : 'bg-gray-50 hover:bg-gray-100/50'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-extrabold text-gray-700">
+                                    Member {idx + 1}: {member.name || 'Pending Details'}
+                                  </span>
+                                  {idx === 0 && (
+                                    <span className="text-[8px] bg-orange-100 text-orange-700 font-bold px-1.5 py-0.5 rounded">
+                                      Primary
+                                    </span>
+                                  )}
+                                </div>
+                                <span className={`text-[10px] font-bold ${isComplete ? 'text-emerald-600' : 'text-amber-500'}`}>
+                                  {isComplete ? '✔ Complete' : '⏳ Incomplete'}
+                                </span>
                               </div>
+
+                              {/* Accordion Body Form */}
+                              {isExpanded && (
+                                <div className="p-5 space-y-4 bg-white animate-in slide-in-from-top-2 duration-200">
+                                  {/* Full Name */}
+                                  <div className="space-y-1">
+                                    <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Full Name (as per ID proof)</label>
+                                    <input
+                                      type="text"
+                                      required
+                                      value={member.name}
+                                      onChange={(e) => handleMemberChange(idx, 'name', e.target.value)}
+                                      placeholder="Full Name"
+                                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                    />
+                                  </div>
+
+                                  {/* Age & Gender */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Age</label>
+                                      <input
+                                        type="number"
+                                        required
+                                        min="1"
+                                        value={member.age}
+                                        onChange={(e) => handleMemberChange(idx, 'age', parseInt(e.target.value))}
+                                        placeholder="Age"
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Gender</label>
+                                      <select
+                                        value={member.gender}
+                                        onChange={(e) => handleMemberChange(idx, 'gender', e.target.value)}
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      >
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  {/* Phone & Email */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Mobile Phone</label>
+                                      <input
+                                        type="tel"
+                                        required
+                                        value={member.phone}
+                                        onChange={(e) => handleMemberChange(idx, 'phone', e.target.value)}
+                                        placeholder="Mobile Number"
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Email Address</label>
+                                      <input
+                                        type="email"
+                                        required
+                                        value={member.email}
+                                        onChange={(e) => handleMemberChange(idx, 'email', e.target.value)}
+                                        placeholder="hiker@gmail.com"
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Blood Group & Fitness Level */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Blood Group</label>
+                                      <select
+                                        value={member.bloodGroup}
+                                        onChange={(e) => handleMemberChange(idx, 'bloodGroup', e.target.value)}
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      >
+                                        {['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'].map(bg => (
+                                          <option key={bg} value={bg}>{bg}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Fitness Level</label>
+                                      <select
+                                        value={member.fitnessLevel}
+                                        onChange={(e) => handleMemberChange(idx, 'fitnessLevel', e.target.value)}
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      >
+                                        <option value="Beginner">Beginner (Low fitness)</option>
+                                        <option value="Average">Average (Active walks)</option>
+                                        <option value="Excellent">Excellent (Athletic)</option>
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  {/* ID Proof Type & ID Proof Number */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">ID Proof Type</label>
+                                      <select
+                                        value={member.idProofType}
+                                        onChange={(e) => handleMemberChange(idx, 'idProofType', e.target.value)}
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      >
+                                        <option value="Aadhaar">Aadhaar Card</option>
+                                        <option value="PAN">PAN Card</option>
+                                        <option value="Driving License">Driving License</option>
+                                        <option value="Passport">Passport</option>
+                                      </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">ID Number</label>
+                                      <input
+                                        type="text"
+                                        required
+                                        value={member.idProofNumber}
+                                        onChange={(e) => handleMemberChange(idx, 'idProofNumber', e.target.value)}
+                                        placeholder="ID Number"
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* SOS Emergency Contact Details */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">SOS Contact Person</label>
+                                      <input
+                                        type="text"
+                                        required
+                                        value={member.emergencyName}
+                                        onChange={(e) => handleMemberChange(idx, 'emergencyName', e.target.value)}
+                                        placeholder="Contact Name"
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">SOS Contact Mobile</label>
+                                      <input
+                                        type="tel"
+                                        required
+                                        value={member.emergencyPhone}
+                                        onChange={(e) => handleMemberChange(idx, 'emergencyPhone', e.target.value)}
+                                        placeholder="Mobile Number"
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Medical Conditions & Allergies */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Medical Conditions (Optional)</label>
+                                      <input
+                                        type="text"
+                                        value={member.medicalConditions}
+                                        onChange={(e) => handleMemberChange(idx, 'medicalConditions', e.target.value)}
+                                        placeholder="e.g. Asthma"
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Allergies (Optional)</label>
+                                      <input
+                                        type="text"
+                                        value={member.allergies}
+                                        onChange={(e) => handleMemberChange(idx, 'allergies', e.target.value)}
+                                        placeholder="e.g. Peanuts"
+                                        className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1235,80 +1504,156 @@ export default function TrekDetailsPage() {
                         </div>
                       </div>
 
+                      {/* Coupon Code Input */}
+                      <div className="p-5 bg-gray-50 rounded-[20px] border border-gray-100 space-y-3">
+                        <p className="text-xs font-extrabold text-primary-orange uppercase tracking-wider">Discount Coupon</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={couponCode}
+                            onChange={(e) => {
+                              setCouponCode(e.target.value.toUpperCase());
+                              setCouponError('');
+                            }}
+                            placeholder="ENTER COUPON CODE"
+                            className="flex-1 border border-gray-250 bg-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-bold uppercase"
+                            disabled={couponApplied}
+                          />
+                          {couponApplied ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCouponApplied(false);
+                                setCouponDiscount(0);
+                                setCouponCode('');
+                              }}
+                              className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleApplyCoupon}
+                              className="bg-primary-orange hover:bg-orange-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer"
+                            >
+                              Apply
+                            </button>
+                          )}
+                        </div>
+                        {couponError && <p className="text-[10px] font-bold text-red-600">{couponError}</p>}
+                        {couponApplied && <p className="text-[10px] font-bold text-emerald-600">✔ Coupon applied successfully!</p>}
+                      </div>
+
                       {/* Declaration Checkboxes */}
-                      <div className="space-y-2 pt-2 text-[10px] font-semibold text-gray-500 leading-relaxed">
-                        <div className="flex items-start gap-2">
+                      <div className="space-y-3 pt-2 text-[10px] font-semibold text-gray-500 leading-relaxed">
+                        <div className="flex items-start gap-2.5">
                           <input 
                             type="checkbox"
                             required
-                            id="fit-check"
-                            checked={fitnessDeclared}
-                            onChange={(e) => setFitnessDeclared(e.target.checked)}
-                            className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer"
+                            id="check-fit"
+                            checked={checkFit}
+                            onChange={(e) => setCheckFit(e.target.checked)}
+                            className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer shrink-0"
                           />
-                          <label htmlFor="fit-check" className="select-none cursor-pointer">
-                            I declare that I am physically fit for this trekking event.
+                          <label htmlFor="check-fit" className="select-none cursor-pointer text-gray-600">
+                            I am medically fit for this trekking event.
                           </label>
                         </div>
-                        <div className="flex items-start gap-2">
+                        <div className="flex items-start gap-2.5">
                           <input 
                             type="checkbox"
                             required
-                            id="risk-check"
-                            checked={riskAcknowledged}
-                            onChange={(e) => setRiskAcknowledged(e.target.checked)}
-                            className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer"
+                            id="check-cancel"
+                            checked={checkCancel}
+                            onChange={(e) => setCheckCancel(e.target.checked)}
+                            className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer shrink-0"
                           />
-                          <label htmlFor="risk-check" className="select-none cursor-pointer">
-                            I acknowledge the risks involved and participate at my own responsibility.
+                          <label htmlFor="check-cancel" className="select-none cursor-pointer text-gray-600">
+                            I agree to the TrekWari cancellation and refund policy.
                           </label>
                         </div>
-                        <div className="flex items-start gap-2">
+                        <div className="flex items-start gap-2.5">
                           <input 
                             type="checkbox"
                             required
-                            id="instructions-check"
-                            checked={instructionsAgreed}
-                            onChange={(e) => setInstructionsAgreed(e.target.checked)}
-                            className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer"
+                            id="check-risks"
+                            checked={checkRisks}
+                            onChange={(e) => setCheckRisks(e.target.checked)}
+                            className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer shrink-0"
                           />
-                          <label htmlFor="instructions-check" className="select-none cursor-pointer">
-                            I agree to follow the leader directions and eco-friendly guidelines.
+                          <label htmlFor="check-risks" className="select-none cursor-pointer text-gray-600">
+                            I understand the trekking risks involved and participate at my own responsibility.
+                          </label>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <input 
+                            type="checkbox"
+                            required
+                            id="check-media"
+                            checked={checkMedia}
+                            onChange={(e) => setCheckMedia(e.target.checked)}
+                            className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer shrink-0"
+                          />
+                          <label htmlFor="check-media" className="select-none cursor-pointer text-gray-600">
+                            I agree to photo and video usage captured during the trip for promotion.
+                          </label>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <input 
+                            type="checkbox"
+                            required
+                            id="check-id"
+                            checked={checkId}
+                            onChange={(e) => setCheckId(e.target.checked)}
+                            className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer shrink-0"
+                          />
+                          <label htmlFor="check-id" className="select-none cursor-pointer text-gray-600">
+                            I carry a valid government-issued ID card during the entire trek.
+                          </label>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <input 
+                            type="checkbox"
+                            required
+                            id="check-instructions"
+                            checked={checkInstructions}
+                            onChange={(e) => setCheckInstructions(e.target.checked)}
+                            className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer shrink-0"
+                          />
+                          <label htmlFor="check-instructions" className="select-none cursor-pointer text-gray-600">
+                            I will follow all Trek Coordinator instructions and wilderness guidelines.
+                          </label>
+                        </div>
+                        <div className="flex items-start gap-2.5 border-t border-gray-100 pt-3 text-xs font-bold text-dark-charcoal">
+                          <input 
+                            type="checkbox"
+                            required
+                            id="check-terms"
+                            checked={checkTerms}
+                            onChange={(e) => setCheckTerms(e.target.checked)}
+                            className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer shrink-0"
+                          />
+                          <label htmlFor="check-terms" className="select-none cursor-pointer leading-tight text-gray-800">
+                            I accept all TrekWari Terms & Conditions.
                           </label>
                         </div>
 
                         {members.some(m => m.age < 18) && (
-                          <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-xl text-orange-900">
+                          <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-xl text-orange-900 mt-2">
                             <input 
                               type="checkbox"
                               required
                               id="guardian-check"
                               checked={guardianPermitted}
                               onChange={(e) => setGuardianPermitted(e.target.checked)}
-                              className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer"
+                              className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer shrink-0"
                             />
-                            <label htmlFor="guardian-check" className="select-none cursor-pointer font-bold">
+                            <label htmlFor="guardian-check" className="select-none cursor-pointer font-bold text-[10px]">
                               I confirm parental/guardian permission is granted for minors in my roster.
                             </label>
                           </div>
                         )}
-
-                        <div className="flex items-start gap-2 border-t border-gray-100 pt-3 text-xs font-bold text-dark-charcoal">
-                          <input 
-                            type="checkbox"
-                            required
-                            id="waiver-check"
-                            checked={termsAccepted}
-                            onChange={(e) => {
-                              setTermsAccepted(e.target.checked);
-                              setWaiverAccepted(e.target.checked);
-                            }}
-                            className="mt-0.5 accent-primary-orange h-4 w-4 rounded cursor-pointer"
-                          />
-                          <label htmlFor="waiver-check" className="select-none cursor-pointer leading-tight">
-                            I accept the Wilderness Waiver, Rules, and Cancellation terms.
-                          </label>
-                        </div>
                       </div>
                     </div>
                   )}
@@ -1350,6 +1695,45 @@ export default function TrekDetailsPage() {
                     </div>
                   )}
 
+                  {/* Sticky Booking Summary */}
+                  {checkoutStep < 4 && (
+                    <div className="bg-orange-50/30 border border-orange-100 rounded-2xl p-5 space-y-3 mt-4">
+                      <div className="flex justify-between items-center border-b border-orange-100/60 pb-2">
+                        <span className="text-xs font-bold text-dark-charcoal">{trek.title}</span>
+                        <span className="text-[10px] uppercase font-extrabold text-primary-orange bg-orange-50 px-2.5 py-0.5 rounded border border-orange-100/50">
+                          {seatCount} seat{seatCount > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-1.5 text-xs font-semibold text-gray-500">
+                        <div className="flex justify-between">
+                          <span>Price per Person</span>
+                          <span className="text-dark-charcoal font-bold">INR {trek.price.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Subtotal</span>
+                          <span className="text-dark-charcoal font-bold">INR {(trek.price * seatCount).toFixed(2)}</span>
+                        </div>
+                        {couponApplied && (
+                          <div className="flex justify-between text-emerald-600 font-bold">
+                            <span>Coupon Discount ({couponCode})</span>
+                            <span>-INR {couponDiscount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span>GST (18%)</span>
+                          <span className="text-dark-charcoal font-bold">INR {Math.round(trek.price * seatCount * 0.18).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-orange-100/60 pt-2.5 text-sm font-extrabold text-dark-charcoal">
+                          <span>Total Amount</span>
+                          <span className="text-primary-orange font-black">
+                            INR {(trek.price * seatCount - couponDiscount + Math.round(trek.price * seatCount * 0.18)).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Form Actions Footer */}
                   {checkoutStep < 4 && (
                     <div className="pt-6 border-t border-gray-100 flex gap-4 mt-8">
@@ -1367,10 +1751,13 @@ export default function TrekDetailsPage() {
                         type="submit"
                         disabled={
                           isProcessingPayment || (checkoutStep === 3 && (
-                            !termsAccepted ||
-                            !fitnessDeclared ||
-                            !riskAcknowledged ||
-                            !instructionsAgreed ||
+                            !checkFit ||
+                            !checkCancel ||
+                            !checkRisks ||
+                            !checkMedia ||
+                            !checkId ||
+                            !checkInstructions ||
+                            !checkTerms ||
                             !emergencyContact ||
                             !emergencyName ||
                             !emergencyRelationship ||
@@ -1384,7 +1771,7 @@ export default function TrekDetailsPage() {
                         ) : checkoutStep === 3 ? (
                           <>
                             <Sparkles className="h-4 w-4" />
-                            Pay INR {(trek.price * seatCount).toFixed(2)}
+                            Pay INR {(trek.price * seatCount - couponDiscount + Math.round(trek.price * seatCount * 0.18)).toFixed(2)}
                           </>
                         ) : (
                           'Continue'

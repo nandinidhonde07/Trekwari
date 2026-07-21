@@ -58,6 +58,7 @@ model User {
   blogs                     Blog[]
   memories                  Memory[]
   likes                     MemoryLike[]
+  blogComments              BlogComment[]
   comments                  MemoryComment[]
   eventLeaders              EventLeader[]
   auditLogs                 AuditLog[]
@@ -102,6 +103,14 @@ model Event {
   minAge           Int            @default(10)
   latitude         Float?
   longitude        Float?
+  coordinatorName  String?
+  coordinatorPhone String?
+  trekLeaderName   String?
+  assistantLeaders String?        // Stringified JSON array of assistant leader names
+  busNumber        String?        @default("Bus 1")
+  pickupLocations  String?        // Stringified JSON array of pickup locations
+  pickupTimings    String?        // Stringified JSON array of pickup timings
+  weatherNotes     String?
   isDeleted        Boolean        @default(false)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -151,6 +160,7 @@ model Booking {
   guardianPermitted  Boolean?
   couponCode         String?
   discountAmount     Float         @default(0)
+  securityToken      String?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   user               User          @relation(fields: [userId], references: [id])
@@ -159,16 +169,42 @@ model Booking {
   certificate        Certificate?
 }
 
-// Attendance Statuses: PENDING, PRESENT, ABSENT
 model BookingMember {
-  id               String           @id @default(uuid())
-  bookingId        String
-  name             String
-  age              Int
-  gender           String
-  phone            String?
-  attendanceStatus String           @default("PENDING") // AttendanceStatus values
-  booking          Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  id                String           @id @default(uuid())
+  bookingId         String
+  name              String
+  gender            String           @default("Male")
+  age               Int
+  phone             String?
+  email             String?
+  bloodGroup        String?
+  emergencyName     String?
+  emergencyPhone    String?
+  medicalConditions String?
+  allergies         String?
+  fitnessLevel      String?          @default("Average")
+  idProofType       String?
+  idProofNumber     String?
+  busNumber         String           @default("Bus 1")
+  seatNumber        String?
+  attendanceStatus  String           @default("PENDING") // AttendanceStatus values
+  checkedIn         Boolean          @default(false)
+  checkedInAt       DateTime?
+  checkedInBy       String?
+  checkedInDevice   String?
+  booking           Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  checkInLogs       CheckInLog[]
+}
+
+model CheckInLog {
+  id              String        @id @default(uuid())
+  bookingMemberId String
+  scannedAt       DateTime      @default(now())
+  scannedBy       String
+  deviceInfo      String?
+  location        String?
+  status          String        // SUCCESS, DUPLICATE, FAILED
+  bookingMember   BookingMember @relation(fields: [bookingMemberId], references: [id], onDelete: Cascade)
 }
 
 model Certificate {
@@ -183,17 +219,21 @@ model Certificate {
 }
 
 model Memory {
-  id        String          @id @default(uuid())
-  userId    String
-  eventId   String
-  caption   String?
-  mediaUrl  String          // Cloudinary URL
-  mediaType String          @default("IMAGE") // MediaType: IMAGE, VIDEO
-  createdAt DateTime        @default(now())
-  user      User            @relation(fields: [userId], references: [id])
-  event     Event           @relation(fields: [eventId], references: [id])
-  likes     MemoryLike[]
-  comments  MemoryComment[]
+  id         String          @id @default(uuid())
+  userId     String
+  eventId    String
+  caption    String?
+  mediaUrl   String          // Cloudinary URL
+  mediaType  String          @default("IMAGE") // MediaType: IMAGE, VIDEO
+  pinned     Boolean         @default(false)
+  hidden     Boolean         @default(false)
+  isFeatured Boolean         @default(false)
+  tags       String?
+  createdAt  DateTime        @default(now())
+  user       User            @relation(fields: [userId], references: [id])
+  event      Event           @relation(fields: [eventId], references: [id])
+  likes      MemoryLike[]
+  comments   MemoryComment[]
 }
 
 model MemoryLike {
@@ -215,30 +255,91 @@ model MemoryComment {
 }
 
 model Review {
-  id         String   @id @default(uuid())
-  userId     String
-  eventId    String
-  rating     Int
-  comment    String
-  images     String   // Stringified JSON string array of review images
-  isApproved Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id])
-  event      Event    @relation(fields: [eventId], references: [id])
+  id                   String   @id @default(uuid())
+  userId               String
+  eventId              String
+  rating               Int      // Overall rating
+  ratingExperience     Int?     // Experience Rating (1-5)
+  ratingCoordinator    Int?     // Coordinator Rating (1-5)
+  ratingSafety         Int?     // Safety Rating (1-5)
+  ratingFood           Int?     // Food Rating (1-5)
+  ratingTransportation Int?     // Transportation Rating (1-5)
+  ratingDifficulty     String?  // Difficulty rating text (Easy, Moderate, Hard)
+  ratingValue          Int?     // Value for money (1-5)
+  wouldRecommend       Boolean  @default(true)
+  title                String?  // Review title
+  comment              String   // Detailed review
+  images               String   // Stringified JSON string array of review images
+  isAnonymous          Boolean  @default(false)
+  isVerified           Boolean  @default(true)
+  replyComment         String?  // Admin response
+  pinned               Boolean  @default(false)
+  hidden               Boolean  @default(false)
+  isApproved           Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  user                 User     @relation(fields: [userId], references: [id])
+  event                Event    @relation(fields: [eventId], references: [id])
 }
 
 model Blog {
+  id             String        @id @default(uuid())
+  title          String
+  slug           String        @unique
+  content        String
+  bannerImage    String
+  category       String
+  summary        String?
+  readTime       String?
+  isPublished    Boolean       @default(true)
+  isFeatured     Boolean       @default(false)
+  scheduledAt    DateTime?
+  views          Int           @default(0)
+  likes          Int           @default(0)
+  shares         Int           @default(0)
+  tags           String?
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String?
+  authorId       String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  author         User          @relation(fields: [authorId], references: [id])
+  versions       BlogVersion[]
+  comments       BlogComment[]
+}
+
+model BlogCategory {
   id          String   @id @default(uuid())
-  title       String
+  name        String   @unique
   slug        String   @unique
-  content     String
-  bannerImage String
-  category    String
-  isPublished Boolean  @default(true)
-  authorId    String
+  description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  author      User     @relation(fields: [authorId], references: [id])
+}
+
+model BlogVersion {
+  id          String   @id @default(uuid())
+  blogId      String
+  title       String
+  content     String
+  summary     String?
+  bannerImage String?
+  editedBy    String?
+  createdAt   DateTime @default(now())
+  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+}
+
+model BlogComment {
+  id        String   @id @default(uuid())
+  blogId    String
+  userId    String
+  content   String
+  isPinned  Boolean  @default(false)
+  isHidden  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model GalleryImage {
@@ -251,17 +352,31 @@ model GalleryImage {
 
 model OrganizationSettings {
   id               String  @id @default(uuid())
-  organizationName String
-  founderName      String
-  email            String
-  phone            String
-  whatsapp         String
-  instagram        String
-  youtube          String?
-  facebook         String?
-  location         String
+  companyName      String  @default("TrekWari")
+  founderName      String  @default("Atharva Dhawale")
+  email            String  @default("atharvadhawale80@gmail.com")
+  phone            String  @default("+91 9322340365")
+  whatsapp         String  @default("+91 9322340365")
+  instagram        String  @default("https://www.instagram.com/trekwari")
+  youtube          String? @default("https://youtube.com/@trekwari")
+  facebook         String? @default("https://facebook.com/trekwari")
+  location         String  @default("Kopargaon, Maharashtra, India")
   logoUrl          String?
   faviconUrl       String?
+  tagline          String? @default("Explore Sahyadri with Certified Leaders")
+  hqName           String? @default("TrekWari HQ Basecamp")
+  address          String? @default("Kopargaon Road")
+  city             String? @default("Kopargaon")
+  state            String? @default("Maharashtra")
+  country          String? @default("India")
+  pincode          String? @default("423601")
+  officeTimings    String? @default("9:00 AM - 6:00 PM (Mon-Sat)")
+  emergencyContact String? @default("+91 9322340365")
+  googleMapsEmbed  String? @default("https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15002.570776735165!2d74.46979603099951!3d19.892403759972323!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bdd007d4b4a3a6b%3A0xe5a3c9e6db5837bd!2sKopargaon%2C%20Maharashtra%20423601!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin")
+  latitude         Float?  @default(19.892403)
+  longitude        Float?  @default(74.469796)
+  linkedin         String?
+  twitter          String?
 }
 
 model Coupon {
@@ -349,13 +464,15 @@ model OrderItem {
 }
 
 model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String?
-  action    String
-  details   String
-  ipAddress String?
-  createdAt DateTime @default(now())
-  user      User?    @relation(fields: [userId], references: [id])
+  id            String   @id @default(uuid())
+  userId        String?
+  action        String
+  details       String
+  ipAddress     String?
+  previousValue String?
+  newValue      String?
+  createdAt     DateTime @default(now())
+  user          User?    @relation(fields: [userId], references: [id])
 }
 
 model TrekPolicy {

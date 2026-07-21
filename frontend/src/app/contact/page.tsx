@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import WhatsAppWidget from '../../components/WhatsAppWidget';
 import { Mail, Phone, MapPin, Send, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { api } from '../../lib/api';
 
 export default function ContactPage() {
   const [name, setName] = useState('');
@@ -14,6 +15,14 @@ export default function ContactPage() {
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
   const [sending, setSending] = useState(false);
+
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    api.settings.get()
+      .then(setSettings)
+      .catch(err => console.error('Failed to load settings in contact page:', err));
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,42 +62,46 @@ export default function ContactPage() {
               Reach out directly via phone or email, or drop by our basecamp office.
             </p>
 
-            <div className="space-y-4 pt-4">
+            <div className="space-y-4">
+              
               {/* Phone */}
-              <div className="flex items-center gap-4 bg-gray-50 p-5 rounded-[20px] border border-gray-100">
-                <div className="p-3 bg-white text-primary-orange rounded-xl shadow-sm border border-gray-200/50">
+              <div className="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center text-primary-orange flex-shrink-0">
                   <Phone className="h-5 w-5" />
                 </div>
-                <div>
-                  <p className="text-[8px] uppercase tracking-wider text-gray-400 font-extrabold">Call Us</p>
-                  <a href="tel:+919322340365" className="text-sm font-bold text-dark-charcoal hover:text-primary-orange transition-colors">
-                    +91 9322340365
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Phone Helpline</p>
+                  <a href={`tel:${settings?.phone || '+919322340365'}`} className="text-sm font-bold text-dark-charcoal hover:text-primary-orange transition-colors">
+                    {settings?.phone || '+91 9322340365'}
                   </a>
                 </div>
               </div>
 
               {/* Email */}
-              <div className="flex items-center gap-4 bg-gray-50 p-5 rounded-[20px] border border-gray-100">
-                <div className="p-3 bg-white text-primary-orange rounded-xl shadow-sm border border-gray-200/50">
+              <div className="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center text-primary-orange flex-shrink-0">
                   <Mail className="h-5 w-5" />
                 </div>
-                <div>
-                  <p className="text-[8px] uppercase tracking-wider text-gray-400 font-extrabold">Email Address</p>
-                  <a href="mailto:atharvadhawale80@gmail.com" className="text-sm font-bold text-dark-charcoal hover:text-primary-orange transition-colors">
-                    atharvadhawale80@gmail.com
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Email Support</p>
+                  <a href={`mailto:${settings?.email || 'atharvadhawale80@gmail.com'}`} className="text-sm font-bold text-dark-charcoal hover:text-primary-orange transition-colors truncate max-w-[250px] inline-block">
+                    {settings?.email || 'atharvadhawale80@gmail.com'}
                   </a>
                 </div>
               </div>
 
               {/* Location */}
-              <div className="flex items-center gap-4 bg-gray-50 p-5 rounded-[20px] border border-gray-100">
-                <div className="p-3 bg-white text-primary-orange rounded-xl shadow-sm border border-gray-200/50">
+              <div className="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center text-primary-orange flex-shrink-0">
                   <MapPin className="h-5 w-5" />
                 </div>
-                <div>
-                  <p className="text-[8px] uppercase tracking-wider text-gray-400 font-extrabold">HQ Address</p>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Basecamp Head Office</p>
                   <p className="text-sm font-bold text-dark-charcoal">
-                    Kopargaon, Maharashtra, India
+                    {settings?.hqName || 'TrekWari HQ Basecamp'}<br />
+                    <span className="text-xs text-gray-500 font-semibold">
+                      {settings?.address ? `${settings.address}, ${settings.city}, ${settings.state} - ${settings.pincode}` : 'Kopargaon, Maharashtra, India'}
+                    </span>
                   </p>
                 </div>
               </div>

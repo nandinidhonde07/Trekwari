@@ -69,3 +69,18 @@ export function requireLeader(req: AuthRequest, res: Response, next: NextFunctio
 
   next();
 }
+
+/**
+ * Middleware to enforce Super Admin (Hyper Admin) authorization.
+ */
+export function requireSuperAdmin(req: AuthRequest, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Unauthorized. Login required.' });
+  }
+
+  if (req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ error: 'Access denied. Hyper Admin privileges required.' });
+  }
+
+  next();
+}

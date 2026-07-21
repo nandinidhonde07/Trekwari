@@ -124,7 +124,8 @@ export async function getEventBySlug(req: Request, res: Response) {
       itinerary: parseField(evt.itinerary, []),
       reviews: evt.reviews.map((rev: any) => ({
         ...rev,
-        images: parseField(rev.images)
+        images: parseField(rev.images),
+        user: rev.isAnonymous ? { name: 'Anonymous', avatarUrl: null } : rev.user
       }))
     };
 
@@ -170,7 +171,15 @@ export async function createEvent(req: AuthRequest, res: Response) {
     suitableFor,
     minAge,
     leaderIds, // Array of user IDs to assign as leaders
-    policyId
+    policyId,
+    coordinatorName,
+    coordinatorPhone,
+    trekLeaderName,
+    assistantLeaders,
+    busNumber,
+    pickupLocations,
+    pickupTimings,
+    weatherNotes
   } = req.body;
 
   try {
@@ -212,7 +221,15 @@ export async function createEvent(req: AuthRequest, res: Response) {
         trekGrade,
         suitableFor,
         minAge: minAge ? parseInt(minAge) : 10,
-        policyId: policyId || null
+        policyId: policyId || null,
+        coordinatorName: coordinatorName || null,
+        coordinatorPhone: coordinatorPhone || null,
+        trekLeaderName: trekLeaderName || null,
+        assistantLeaders: assistantLeaders ? JSON.stringify(assistantLeaders) : null,
+        busNumber: busNumber || 'Bus 1',
+        pickupLocations: pickupLocations ? JSON.stringify(pickupLocations) : null,
+        pickupTimings: pickupTimings ? JSON.stringify(pickupTimings) : null,
+        weatherNotes: weatherNotes || null
       }
     });
 
@@ -258,7 +275,8 @@ export async function updateEvent(req: AuthRequest, res: Response) {
       'title', 'slug', 'type', 'status', 'difficulty', 'altitude',
       'duration', 'location', 'description', 'fitnessLevel',
       'meetingPoint', 'endPoint', 'googleMapsUrl', 'gpxRoute',
-      'trekGrade', 'suitableFor', 'policyId'
+      'trekGrade', 'suitableFor', 'policyId',
+      'coordinatorName', 'coordinatorPhone', 'trekLeaderName', 'busNumber', 'weatherNotes'
     ];
 
     stringFields.forEach(f => {
@@ -281,7 +299,10 @@ export async function updateEvent(req: AuthRequest, res: Response) {
     }
 
     // JSON fields
-    const jsonFields = ['highlights', 'itinerary', 'thingsToCarry', 'safetyMeasures', 'pickupPoints', 'images'];
+    const jsonFields = [
+      'highlights', 'itinerary', 'thingsToCarry', 'safetyMeasures', 'pickupPoints', 'images',
+      'assistantLeaders', 'pickupLocations', 'pickupTimings'
+    ];
     jsonFields.forEach(f => {
       if (data[f] !== undefined) {
         updateData[f] = JSON.stringify(data[f]);

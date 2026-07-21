@@ -6,22 +6,28 @@ import {
   adminResetPassword, 
   getAuditLogs, 
   getUserSessions, 
-  revokeUserSession 
+  revokeUserSession,
+  adminUpdateUserRole,
+  adminDeleteUser
 } from '../controllers/adminController';
-import { requireAuth, requireAdmin } from '../middleware/auth';
+import { requireAuth, requireAdmin, requireSuperAdmin } from '../middleware/auth';
 
 const router = Router();
 
-// Enforce both authentication and administrative privileges globally on these routes
+// Require authenticated user for all admin actions
 router.use(requireAuth);
-router.use(requireAdmin);
 
-router.get('/users', getUsers);
-router.post('/users/:id/status', toggleUserStatus);
-router.post('/users/:id/verify', verifyUserEmail);
-router.post('/users/:id/reset-password', adminResetPassword);
-router.get('/users/:id/sessions', getUserSessions);
-router.delete('/sessions/:sessionId', revokeUserSession);
-router.get('/audit-logs', getAuditLogs);
+// Gated for general Admin access (viewing users list)
+router.get('/users', requireAdmin, getUsers);
+
+// Gated strictly for Hyper Admin (SUPER_ADMIN) only
+router.post('/users/:id/role', requireSuperAdmin, adminUpdateUserRole);
+router.delete('/users/:id', requireSuperAdmin, adminDeleteUser);
+router.post('/users/:id/status', requireSuperAdmin, toggleUserStatus);
+router.post('/users/:id/verify', requireSuperAdmin, verifyUserEmail);
+router.post('/users/:id/reset-password', requireSuperAdmin, adminResetPassword);
+router.get('/users/:id/sessions', requireSuperAdmin, getUserSessions);
+router.delete('/sessions/:sessionId', requireSuperAdmin, revokeUserSession);
+router.get('/audit-logs', requireSuperAdmin, getAuditLogs);
 
 export default router;

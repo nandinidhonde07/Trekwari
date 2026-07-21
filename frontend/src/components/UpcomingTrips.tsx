@@ -117,7 +117,7 @@ export default function UpcomingTrips() {
                         alt={trip.title}
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/25" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/20" />
 
                       {/* Difficulty Badge */}
                       <span className={`absolute top-4 left-4 border text-[8px] uppercase font-extrabold tracking-widest px-3 py-1 rounded-[8px] backdrop-blur-md ${
@@ -135,11 +135,11 @@ export default function UpcomingTrips() {
                       </span>
 
                       {/* Location & Title */}
-                      <div className="absolute bottom-4 left-4 right-4 text-white">
-                        <p className="text-[8px] font-extrabold uppercase tracking-widest text-gray-300">
+                      <div className="absolute bottom-4 left-4 right-4 z-10">
+                        <p className="text-[9px] font-extrabold uppercase tracking-widest text-white/90 drop-shadow">
                           {trip.location.split(',')[0]}
                         </p>
-                        <h3 className="text-lg font-bold tracking-tight mt-1 font-display">
+                        <h3 className="text-lg sm:text-xl font-extrabold tracking-tight mt-0.5 font-display text-white !text-white drop-shadow-md">
                           {trip.title}
                         </h3>
                       </div>

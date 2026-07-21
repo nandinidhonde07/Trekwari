@@ -183,44 +183,53 @@ export async function createEvent(req: AuthRequest, res: Response) {
   } = req.body;
 
   try {
-    // Validate slug uniqueness
-    const existing = await prisma.event.findUnique({ where: { slug } });
-    if (existing) {
-      return res.status(400).json({ error: 'A trek with this slug already exists.' });
+    // Generate slug from title if not provided
+    let eventSlug = slug ? String(slug).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : '';
+    if (!eventSlug && title) {
+      eventSlug = String(title).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     }
+    if (!eventSlug) eventSlug = `trek-${Date.now()}`;
+
+    const existing = await prisma.event.findUnique({ where: { slug: eventSlug } });
+    if (existing) {
+      eventSlug = `${eventSlug}-${Date.now().toString().slice(-4)}`;
+    }
+
+    const start = startDate ? new Date(startDate) : new Date();
+    const end = endDate ? new Date(endDate) : start;
 
     const newEvent = await prisma.event.create({
       data: {
-        title,
-        slug,
+        title: title || 'Untitled Trek',
+        slug: eventSlug,
         type: type || 'TREK',
         status: status || 'DRAFT',
-        difficulty,
-        altitude,
-        duration,
-        price: parseFloat(price),
-        maxSeats: parseInt(maxSeats),
-        availableSeats: parseInt(maxSeats), // Init seats
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        location,
-        description,
-        highlights: JSON.stringify(highlights || []),
-        itinerary: JSON.stringify(itinerary || []),
-        thingsToCarry: JSON.stringify(thingsToCarry || []),
-        fitnessLevel,
-        safetyMeasures: JSON.stringify(safetyMeasures || []),
-        pickupPoints: JSON.stringify(pickupPoints || []),
-        images: JSON.stringify(images || []),
-        distance: distance ? parseFloat(distance) : null,
-        elevationGain: elevationGain ? parseFloat(elevationGain) : null,
-        meetingPoint,
-        endPoint,
-        googleMapsUrl,
-        gpxRoute,
-        trekGrade,
-        suitableFor,
-        minAge: minAge ? parseInt(minAge) : 10,
+        difficulty: difficulty || 'MODERATE',
+        altitude: altitude || '1000m',
+        duration: duration || '1 Day',
+        price: price ? parseFloat(String(price)) : 999,
+        maxSeats: maxSeats ? parseInt(String(maxSeats)) : 30,
+        availableSeats: maxSeats ? parseInt(String(maxSeats)) : 30,
+        startDate: start,
+        endDate: end,
+        location: location || 'Sahyadri Range, Maharashtra',
+        description: description || 'Trekking expedition with TrekWari.',
+        highlights: JSON.stringify(Array.isArray(highlights) ? highlights : []),
+        itinerary: JSON.stringify(Array.isArray(itinerary) ? itinerary : []),
+        thingsToCarry: JSON.stringify(Array.isArray(thingsToCarry) ? thingsToCarry : []),
+        fitnessLevel: fitnessLevel || 'BASIC',
+        safetyMeasures: JSON.stringify(Array.isArray(safetyMeasures) ? safetyMeasures : []),
+        pickupPoints: JSON.stringify(Array.isArray(pickupPoints) ? pickupPoints : []),
+        images: JSON.stringify(Array.isArray(images) ? images : []),
+        distance: distance ? parseFloat(String(distance)) : null,
+        elevationGain: elevationGain ? parseFloat(String(elevationGain)) : null,
+        meetingPoint: meetingPoint || '',
+        endPoint: endPoint || '',
+        googleMapsUrl: googleMapsUrl || '',
+        gpxRoute: gpxRoute || null,
+        trekGrade: trekGrade || null,
+        suitableFor: suitableFor || null,
+        minAge: minAge ? parseInt(String(minAge)) : 10,
         policyId: policyId || null,
         coordinatorName: coordinatorName || null,
         coordinatorPhone: coordinatorPhone || null,

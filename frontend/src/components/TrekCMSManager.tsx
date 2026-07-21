@@ -1,1588 +1,987 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
-import { useToast } from './ui/toast';
-import { useAuth } from '../hooks/useAuth';
 import { 
-  Plus, Trash2, Copy, ArrowUp, ArrowDown, Eye, Edit, Save, Upload, X, 
-  Search, Filter, Download, ChevronDown, ChevronUp, Users, Calendar, 
-  DollarSign, Globe, Camera, CheckCircle2, Image as ImageIcon, Sun, 
-  Activity, Flag, Flame, BookOpen, AlertCircle, HelpCircle, Bold, Italic, 
-  List, ListOrdered, Link as LinkIcon, Table, MapPin, Compass
+  Plus, Edit, Trash2, Save, X, Eye, EyeOff, CheckCircle2, AlertCircle,
+  MapPin, Calendar, IndianRupee, Users, Image as ImageIcon, ChevronDown, ChevronUp, Clock, Layers
 } from 'lucide-react';
-
-// Activity Icon styles mapping
-const ICON_OPTIONS = [
-  { name: 'Sunrise', icon: <Sun className="h-3.5 w-3.5" />, color: 'text-amber-500 bg-amber-50 border-amber-200' },
-  { name: 'Transport', icon: <Activity className="h-3.5 w-3.5" />, color: 'text-blue-500 bg-blue-50 border-blue-200' },
-  { name: 'Food & Meals', icon: <Flame className="h-3.5 w-3.5" />, color: 'text-orange-500 bg-orange-50 border-orange-200' },
-  { name: 'Camping', icon: <BookOpen className="h-3.5 w-3.5" />, color: 'text-teal-500 bg-teal-50 border-teal-200' },
-  { name: 'Trek Trail', icon: <Compass className="h-3.5 w-3.5" />, color: 'text-emerald-500 bg-emerald-50 border-emerald-200' },
-  { name: 'Flag summit', icon: <Flag className="h-3.5 w-3.5" />, color: 'text-red-500 bg-red-50 border-red-200' }
-];
-
-interface PolicyItem {
-  id: string;
-  title: string;
-}
-
-interface LeaderUser {
-  id: string;
-  name: string;
-  role: string;
-}
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface TrekCMSManagerProps {
-  policies: PolicyItem[];
-  onRefreshStats?: () => void;
+  policies?: any[];
 }
 
-// Client-side base64 canvas-based image compressor
-function compressImage(base64Str: string, maxWidth = 1200, maxHeight = 1200, quality = 0.75): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      if (width > height) {
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
-        }
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-  });
-}
-
-// Custom Light-weight Rich Text Editor helper component
-function RichTextEditor({ 
-  value, 
-  onChange, 
-  placeholder,
-  label 
-}: { 
-  value: string; 
-  onChange: (val: string) => void; 
-  placeholder?: string;
-  label: string;
-}) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const insertText = (before: string, after: string = '') => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const selected = text.substring(start, end);
-    const replacement = before + selected + after;
-    const newVal = text.substring(0, start) + replacement + text.substring(end);
-    onChange(newVal);
-    
-    // Reset focus
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + before.length, start + before.length + selected.length);
-    }, 50);
-  };
-
-  return (
-    <div className="space-y-1.5 w-full">
-      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</label>
-      <div className="border border-gray-250 bg-white rounded-2xl overflow-hidden focus-within:border-primary-orange transition-all">
-        {/* Toolbar */}
-        <div className="bg-gray-50 border-b border-gray-150 px-3.5 py-2 flex flex-wrap gap-2">
-          <button 
-            type="button" 
-            onClick={() => insertText('**', '**')} 
-            className="p-1 rounded hover:bg-gray-200 text-gray-500" 
-            title="Bold"
-          >
-            <Bold className="h-3.5 w-3.5" />
-          </button>
-          <button 
-            type="button" 
-            onClick={() => insertText('*', '*')} 
-            className="p-1 rounded hover:bg-gray-200 text-gray-500" 
-            title="Italic"
-          >
-            <Italic className="h-3.5 w-3.5" />
-          </button>
-          <button 
-            type="button" 
-            onClick={() => insertText('\n- ', '')} 
-            className="p-1 rounded hover:bg-gray-200 text-gray-500" 
-            title="Bullet list"
-          >
-            <List className="h-3.5 w-3.5" />
-          </button>
-          <button 
-            type="button" 
-            onClick={() => insertText('\n1. ', '')} 
-            className="p-1 rounded hover:bg-gray-200 text-gray-500" 
-            title="Numbered list"
-          >
-            <ListOrdered className="h-3.5 w-3.5" />
-          </button>
-          <button 
-            type="button" 
-            onClick={() => insertText('[', '](url)')} 
-            className="p-1 rounded hover:bg-gray-200 text-gray-500" 
-            title="Insert Link"
-          >
-            <LinkIcon className="h-3.5 w-3.5" />
-          </button>
-          <button 
-            type="button" 
-            onClick={() => insertText('\n| Column 1 | Column 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n')} 
-            className="p-1 rounded hover:bg-gray-200 text-gray-500" 
-            title="Insert Table"
-          >
-            <Table className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        <textarea
-          ref={textareaRef}
-          rows={4}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder || 'Write here...'}
-          className="w-full p-3.5 text-xs text-dark-charcoal focus:outline-none bg-white resize-y font-semibold"
-        />
-      </div>
-    </div>
-  );
-}
-
-export function TrekCMSManager({ policies, onRefreshStats }: TrekCMSManagerProps) {
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
-  
-  // Tabs for the Trek list and form editor
-  const [activeSubTab, setActiveSubTab] = useState<'ALL' | 'DRAFT' | 'ARCHIVED' | 'NEW'>('ALL');
-  
-  // Lists
-  const [treks, setTreks] = useState<any[]>([]);
-  const [leadersList, setLeadersList] = useState<LeaderUser[]>([]);
+export function TrekCMSManager({ policies = [] }: TrekCMSManagerProps) {
+  const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Search & Filter state
-  const [search, setSearch] = useState('');
-  const [difficultyFilter, setDifficultyFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [leaderFilter, setLeaderFilter] = useState('');
-  
-  // Selected IDs for bulk operations
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
-  // Stepper creator wizard state
-  const [step, setStep] = useState(1);
+  const [showFormModal, setShowFormModal] = useState(false);
   const [editingTrekId, setEditingTrekId] = useState<string | null>(null);
-  
-  // Form Values State
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Accordion open state inside form
+  const [openSection, setOpenSection] = useState<string>('basic'); // 'basic' | 'dates' | 'details' | 'itinerary' | 'advanced'
+
+  // FORM STATES
   const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
-  const [shortDesc, setShortDesc] = useState('');
-  const [fullDesc, setFullDesc] = useState('');
-  const [category, setCategory] = useState('MOUNTAINS');
-  const [difficulty, setDifficulty] = useState('Moderate');
+  const [coverImage, setCoverImage] = useState('');
+  const [galleryImages, setGalleryImages] = useState<string[]>(['']);
+  const [type, setType] = useState('TREK');
+  const [difficulty, setDifficulty] = useState('MODERATE');
   const [duration, setDuration] = useState('1 Day');
-  const [distance, setDistance] = useState(0);
-  const [elevationGain, setElevationGain] = useState(0);
-  const [maxAltitude, setMaxAltitude] = useState('');
-  const [location, setLocation] = useState('');
+  const [distance, setDistance] = useState('10 km');
+  const [altitude, setAltitude] = useState('1646m');
+  const [location, setLocation] = useState('Sahyadri Range, Maharashtra');
   const [googleMapsUrl, setGoogleMapsUrl] = useState('');
-  const [meetingPoint, setMeetingPoint] = useState('');
-  const [endPoint, setEndPoint] = useState('');
-  
-  // Dates & Slots
+  const [description, setDescription] = useState('');
+
+  // Dates & Pricing
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [maxSeats, setMaxSeats] = useState(30);
-  const [waitingSeats, setWaitingSeats] = useState(0); // Reserved/Waitlist slots
-  
-  // Pricing
-  const [price, setPrice] = useState(1399);
-  const [discountPrice, setDiscountPrice] = useState(0);
-  
-  // Image Upload states
-  const [coverImage, setCoverImage] = useState('');
-  const [bannerImage, setBannerImage] = useState('');
-  const [galleryImages, setGalleryImages] = useState<string[]>([]);
-  
-  // Multi-day Itinerary Builder
-  const [itinerary, setItinerary] = useState<any[]>([]);
-  const [itineraryType, setItineraryType] = useState('CUSTOM');
-  
-  // Leaders & Pickups
-  const [selectedLeaderIds, setSelectedLeaderIds] = useState<string[]>([]);
-  const [pickupPoints, setPickupPoints] = useState<any[]>([]);
-  const [policyId, setPolicyId] = useState('');
-  
-  // Operational CMS Logistics states
+  const [maxSeats, setMaxSeats] = useState('30');
+  const [price, setPrice] = useState('1499');
+
+  // Trek Details
+  const [thingsToCarry, setThingsToCarry] = useState('');
+  const [safetyInstructions, setSafetyInstructions] = useState('');
   const [coordinatorName, setCoordinatorName] = useState('');
   const [coordinatorPhone, setCoordinatorPhone] = useState('');
   const [trekLeaderName, setTrekLeaderName] = useState('');
-  const [assistantLeadersText, setAssistantLeadersText] = useState('');
-  const [busNumber, setBusNumber] = useState('Bus 1');
-  const [weatherNotes, setWeatherNotes] = useState('');
+  const [pickupPoints, setPickupPoints] = useState<{ name: string; time: string }[]>([
+    { name: 'Kasara Station', time: '04:30 AM' }
+  ]);
+  const [faqs, setFaqs] = useState<{ question: string; answer: string }[]>([
+    { question: 'Is this trek suitable for beginners?', answer: 'Yes, with basic fitness.' }
+  ]);
 
-  // SEO & FAQs
+  // Itinerary (Days with Activities)
+  const [itineraryDays, setItineraryDays] = useState<{ day: number; title: string; activities: { time: string; activity: string; desc: string }[] }[]>([
+    {
+      day: 1,
+      title: 'Summit Climb & Descent',
+      activities: [
+        { time: '05:00 AM', activity: 'Base Village Arrival & Chai', desc: 'Reach base village, gear check and briefing.' },
+        { time: '06:00 AM', activity: 'Ascent Begins', desc: 'Start climbing through forest trail towards peak.' }
+      ]
+    }
+  ]);
+
+  // Advanced Settings
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
-  
-  // Load initial resources
-  useEffect(() => {
-    fetchTreks();
-    fetchLeaders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const [policyId, setPolicyId] = useState('');
 
-  // Filtered treks selector
-  const fetchTreks = async () => {
+  // Fetch all treks
+  const fetchTrips = async () => {
     setLoading(true);
     try {
-      const data = await api.events.list();
-      setTreks(data);
+      const data = await api.events.adminList();
+      setTrips(data || []);
     } catch (err) {
-      console.error('Failed to load treks:', err);
-      toast('Failed to load treks list.', 'error');
+      console.error('Failed to fetch admin treks:', err);
+      showToast('Failed to load treks from server.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchLeaders = async () => {
-    try {
-      const data = await api.admin.getUsers();
-      // Filter potential staff/leaders
-      const leaders = data.filter((u: any) => 
-        u.role === 'TREK_LEADER' || 
-        u.role === 'VOLUNTEER' || 
-        u.role === 'ADMIN' || 
-        u.role === 'SUPER_ADMIN'
-      );
-      setLeadersList(leaders);
-    } catch (err) {
-      console.error('Failed to load leaders:', err);
-    }
+  useEffect(() => {
+    fetchTrips();
+  }, []);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
   };
 
-  // Auto Generate Slug
-  const handleTitleChange = (val: string) => {
-    setTitle(val);
-    if (!editingTrekId) {
-      const generatedSlug = val.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-      setSlug(generatedSlug);
-      setMetaTitle(`${val} Summit Trek | TrekWari`);
-    }
-  };
-
-  // Image Upload handler
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'cover' | 'banner' | 'gallery') => {
-    const files = e.target.files;
-    if (!files) return;
-    
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (file.size > 5 * 1024 * 1024) {
-          toast(`${file.name} exceeds 5MB size limit.`, 'error');
-          continue;
-        }
-
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-          const compressed = await compressImage(reader.result as string);
-          if (target === 'cover') setCoverImage(compressed);
-          if (target === 'banner') setBannerImage(compressed);
-          if (target === 'gallery') setGalleryImages(prev => [...prev, compressed]);
-        };
-      }
-      toast('Images loaded and compressed successfully.', 'success');
-    } catch (err) {
-      toast('Failed to load images.', 'error');
-    }
-  };
-
-  // Duplication workflow
-  const handleDuplicateTrek = async (id: string) => {
-    try {
-      const res = await api.events.duplicate(id);
-      toast(res.message || 'Trek duplicated as Draft successfully!', 'success');
-      fetchTreks();
-      if (onRefreshStats) onRefreshStats();
-    } catch (err: any) {
-      toast(err.message || 'Failed to duplicate trek.', 'error');
-    }
-  };
-
-  // Delete trek action
-  const handleDeleteTrek = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this trek permanently?')) return;
-    try {
-      await api.events.delete(id);
-      toast('Trek deleted successfully.', 'success');
-      fetchTreks();
-      if (onRefreshStats) onRefreshStats();
-    } catch (err: any) {
-      toast(err.message || 'Failed to delete trek.', 'error');
-    }
-  };
-
-  // Itinerary Templates Pre-fill
-  const applyItineraryTemplate = (type: string) => {
-    setItineraryType(type);
-    
-    if (type === 'ONE_DAY') {
-      setItinerary([
-        {
-          dayNumber: 1,
-          dayTitle: 'Summit Climb & Descent',
-          shortSummary: 'Reach the peak and return on the same day.',
-          accommodation: 'None',
-          mealsIncluded: ['Breakfast', 'Lunch'],
-          distanceCovered: 8,
-          trekDuration: '6 Hours',
-          elevationGain: 600,
-          activities: [
-            { time: '05:00 AM', title: 'Reporting & Gathering', description: 'Assemble at the designated base camp meeting point.', location: 'Meeting Point', icon: 'Transport' },
-            { time: '05:30 AM', title: 'Departure by Bus', description: 'Start the road journey towards the base village.', location: 'En route', icon: 'Transport' },
-            { time: '08:00 AM', title: 'Breakfast & Briefing', description: 'Enjoy local village breakfast and briefing on safety protocols.', location: 'Base Village', icon: 'Food & Meals' },
-            { time: '09:00 AM', title: 'Trek Starts', description: 'Gradual climb towards the mountain peak.', location: 'Mountain Trail', icon: 'Trek Trail' },
-            { time: '12:30 PM', title: 'Reach Summit', description: 'Conquer the peak, photography, and panoramic valley views.', location: 'Summit Peak', icon: 'Flag summit' },
-            { time: '01:30 PM', title: 'Descend to Base', description: 'Start the return trail back to the village.', location: 'Mountain Trail', icon: 'Trek Trail' },
-            { time: '04:00 PM', title: 'Traditional Village Lunch', description: 'Delectable hot village-style lunch.', location: 'Base Village', icon: 'Food & Meals' },
-            { time: '05:30 PM', title: 'Return Journey', description: 'Board the bus back to the starting point.', location: 'Return Route', icon: 'Transport' }
-          ]
-        }
-      ]);
-    } else if (type === 'WEEKEND') {
-      setItinerary([
-        {
-          dayNumber: 1,
-          dayTitle: 'Basecamp Assembly & Sunset',
-          shortSummary: 'Arrive at the base camp and settle in.',
-          accommodation: 'Tents / Campsite',
-          mealsIncluded: ['Dinner'],
-          distanceCovered: 3,
-          trekDuration: '2 Hours',
-          elevationGain: 200,
-          activities: [
-            { time: '02:00 PM', title: 'Gathering at Base Village', description: 'Meet trek guides and collect survival items.', location: 'Base Village', icon: 'Transport' },
-            { time: '03:00 PM', title: 'Trail Walk to Campsite', description: 'Short walk to the lakeside campsite.', location: 'Trail', icon: 'Trek Trail' },
-            { time: '05:30 PM', title: 'Sunset Views & Tent Setup', description: 'Help setup tents and enjoy warm tea.', location: 'Campsite', icon: 'Sunrise' },
-            { time: '08:30 PM', title: 'Bonfire & Dinner', description: 'Hot local dinner by the campfire.', location: 'Campsite', icon: 'Food & Meals' }
-          ]
-        },
-        {
-          dayNumber: 2,
-          dayTitle: 'Summit Ascent & Certificate Distribution',
-          shortSummary: 'Acclimatize, push to the summit, and descend.',
-          accommodation: 'None',
-          mealsIncluded: ['Breakfast', 'Lunch'],
-          distanceCovered: 7,
-          trekDuration: '5 Hours',
-          elevationGain: 500,
-          activities: [
-            { time: '05:00 AM', title: 'Wakeup & Sunrise Trail', description: 'Early morning climb to catch the sunrise.', location: 'Summit Path', icon: 'Sunrise' },
-            { time: '07:30 AM', title: 'Summit Conquest', description: 'Flag hosting at the peak.', location: 'Summit Peak', icon: 'Flag summit' },
-            { time: '09:00 AM', title: 'Descent & Breakfast', description: 'Descend to base for hot local breakfast.', location: 'Base Village', icon: 'Food & Meals' },
-            { time: '01:00 PM', title: 'Lunch & Certificates', description: 'Earn your digital certificates over lunch.', location: 'Base Village', icon: 'Food & Meals' }
-          ]
-        }
-      ]);
-    }
-  };
-
-  // Itinerary Item Modification Helpers
-  const addDay = () => {
-    const nextDayNum = itinerary.length + 1;
-    const newDay = {
-      dayNumber: nextDayNum,
-      dayTitle: `Day ${nextDayNum} Route`,
-      shortSummary: 'Short summary of the day\'s goals.',
-      accommodation: 'None',
-      mealsIncluded: [],
-      distanceCovered: 0,
-      trekDuration: '0 Hours',
-      elevationGain: 0,
-      activities: []
-    };
-    setItinerary([...itinerary, newDay]);
-  };
-
-  const removeDay = (idx: number) => {
-    const filtered = itinerary.filter((_, i) => i !== idx);
-    // Recalculate Day Numbers
-    const updated = filtered.map((d, i) => ({
-      ...d,
-      dayNumber: i + 1
-    }));
-    setItinerary(updated);
-  };
-
-  const addActivity = (dayIdx: number) => {
-    const updated = [...itinerary];
-    updated[dayIdx].activities.push({
-      time: '08:00 AM',
-      title: 'New Activity',
-      description: 'Activity details...',
-      location: 'Trek Trail',
-      icon: 'Trek Trail'
-    });
-    setItinerary(updated);
-  };
-
-  const removeActivity = (dayIdx: number, actIdx: number) => {
-    const updated = [...itinerary];
-    updated[dayIdx].activities = updated[dayIdx].activities.filter((_: any, i: number) => i !== actIdx);
-    setItinerary(updated);
-  };
-
-  // Save Trek Form submit
-  const handleSaveTrek = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !slug || !location || !coverImage) {
-      toast('Please fill in name, slug, location, and cover image.', 'error');
-      return;
-    }
-
-    const payload = {
-      title,
-      slug,
-      type: category,
-      status: editingTrekId ? statusFilter || 'DRAFT' : 'DRAFT',
-      difficulty,
-      altitude: maxAltitude,
-      duration,
-      price: parseFloat(String(price)),
-      maxSeats: parseInt(String(maxSeats)),
-      availableSeats: parseInt(String(maxSeats)), // Available initially equals max seats
-      waitingSeats: parseInt(String(waitingSeats)),
-      startDate: new Date(startDate).toISOString(),
-      endDate: new Date(endDate).toISOString(),
-      location,
-      description: fullDesc || shortDesc,
-      highlights: [shortDesc],
-      itinerary,
-      thingsToCarry: [],
-      fitnessLevel: 'Average',
-      safetyMeasures: [],
-      pickupPoints,
-      images: [coverImage, bannerImage, ...galleryImages].filter(Boolean),
-      distance: parseFloat(String(distance)),
-      elevationGain: parseFloat(String(elevationGain)),
-      meetingPoint,
-      endPoint,
-      googleMapsUrl,
-      leaderIds: selectedLeaderIds,
-      policyId: policyId || null,
-      coordinatorName,
-      coordinatorPhone,
-      trekLeaderName,
-      assistantLeaders: JSON.stringify(assistantLeadersText.split(',').map((s: string) => s.trim()).filter(Boolean)),
-      busNumber,
-      weatherNotes
-    };
-
-    try {
-      if (editingTrekId) {
-        await api.events.update(editingTrekId, payload);
-        toast('Trek updated successfully!', 'success');
-      } else {
-        await api.events.create(payload);
-        toast('New trek created as Draft successfully!', 'success');
-      }
-      setStep(1);
-      setEditingTrekId(null);
-      setActiveSubTab('ALL');
-      fetchTreks();
-      if (onRefreshStats) onRefreshStats();
-      resetForm();
-    } catch (err: any) {
-      toast(err.message || 'Failed to save trek.', 'error');
-    }
-  };
-
+  // Reset Form
   const resetForm = () => {
+    setEditingTrekId(null);
     setTitle('');
-    setSlug('');
-    setShortDesc('');
-    setFullDesc('');
-    setCategory('MOUNTAINS');
-    setDifficulty('Moderate');
-    setDuration('1 Day');
-    setDistance(0);
-    setElevationGain(0);
-    setMaxAltitude('');
-    setLocation('');
-    setGoogleMapsUrl('');
-    setMeetingPoint('');
-    setEndPoint('');
-    setStartDate('');
-    setEndDate('');
-    setMaxSeats(30);
-    setWaitingSeats(0);
-    setPrice(1399);
     setCoverImage('');
-    setBannerImage('');
-    setGalleryImages([]);
-    setItinerary([]);
-    setSelectedLeaderIds([]);
-    setPickupPoints([]);
-    setPolicyId('');
-    setMetaTitle('');
-    setMetaDescription('');
+    setGalleryImages(['']);
+    setType('TREK');
+    setDifficulty('MODERATE');
+    setDuration('1 Day');
+    setDistance('10 km');
+    setAltitude('1646m');
+    setLocation('Sahyadri Range, Maharashtra');
+    setGoogleMapsUrl('');
+    setDescription('');
+    setStartDate(new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16));
+    setEndDate(new Date(Date.now() + 86400000 * 7.5).toISOString().slice(0, 16));
+    setMaxSeats('30');
+    setPrice('1499');
+    setThingsToCarry('Trekking shoes, 2L water, Raincoat, Energy bars');
+    setSafetyInstructions('Follow trek leader instructions. Do not wander away from group.');
     setCoordinatorName('');
     setCoordinatorPhone('');
     setTrekLeaderName('');
-    setAssistantLeadersText('');
-    setBusNumber('Bus 1');
-    setWeatherNotes('');
+    setPickupPoints([{ name: 'Kasara Station', time: '04:30 AM' }]);
+    setFaqs([{ question: 'Is this trek suitable for beginners?', answer: 'Yes, with basic physical fitness.' }]);
+    setItineraryDays([
+      {
+        day: 1,
+        title: 'Summit Climb & Descent',
+        activities: [
+          { time: '05:00 AM', activity: 'Base Village Arrival & Chai', desc: 'Reach base village, gear check and briefing.' },
+          { time: '06:00 AM', activity: 'Ascent Begins', desc: 'Start climbing through forest trail towards peak.' }
+        ]
+      }
+    ]);
+    setMetaTitle('');
+    setMetaDescription('');
+    setPolicyId('');
+    setOpenSection('basic');
   };
 
-  const handleEditTrekClick = (trek: any) => {
+  // Open Edit Form
+  const handleEdit = (trek: any) => {
     setEditingTrekId(trek.id);
-    setTitle(trek.title);
-    setSlug(trek.slug);
-    setShortDesc(trek.description.slice(0, 100));
-    setFullDesc(trek.description);
-    setCategory(trek.type || 'MOUNTAINS');
-    setDifficulty(trek.difficulty);
-    setDuration(trek.duration);
-    setDistance(trek.distance || 0);
-    setElevationGain(trek.elevationGain || 0);
-    setMaxAltitude(trek.altitude || '');
-    setLocation(trek.location);
-    setGoogleMapsUrl(trek.googleMapsUrl || '');
-    setMeetingPoint(trek.meetingPoint || '');
-    setEndPoint(trek.endPoint || '');
-    
-    // Parse Dates
-    if (trek.startDate) setStartDate(new Date(trek.startDate).toISOString().slice(0, 16));
-    if (trek.endDate) setEndDate(new Date(trek.endDate).toISOString().slice(0, 16));
-    
-    setMaxSeats(trek.maxSeats);
-    setWaitingSeats(trek.waitingSeats || 0);
-    setPrice(trek.price);
-    
-    // Set Images
-    const imgs = trek.images || [];
+    setTitle(trek.title || '');
+    const imgs = Array.isArray(trek.images) ? trek.images : JSON.parse(trek.images || '[]');
     setCoverImage(imgs[0] || '');
-    setBannerImage(imgs[1] || '');
-    setGalleryImages(imgs.slice(2));
-    
-    setItinerary(trek.itinerary || []);
-    setSelectedLeaderIds((trek.leaders || []).map((l: any) => l.userId));
-    setPickupPoints(trek.pickupPoints || []);
-    setPolicyId(trek.policyId || '');
-    setStatusFilter(trek.status);
+    setGalleryImages(imgs.length > 1 ? imgs.slice(1) : ['']);
+    setType(trek.type || 'TREK');
+    setDifficulty(trek.difficulty || 'MODERATE');
+    setDuration(trek.duration || '1 Day');
+    setDistance(trek.distance ? `${trek.distance} km` : '10 km');
+    setAltitude(trek.altitude || '1646m');
+    setLocation(trek.location || '');
+    setGoogleMapsUrl(trek.googleMapsUrl || '');
+    setDescription(trek.description || '');
+    setStartDate(trek.startDate ? new Date(trek.startDate).toISOString().slice(0, 16) : '');
+    setEndDate(trek.endDate ? new Date(trek.endDate).toISOString().slice(0, 16) : '');
+    setMaxSeats(String(trek.maxSeats || 30));
+    setPrice(String(trek.price || 1499));
+
+    const carry = Array.isArray(trek.thingsToCarry) ? trek.thingsToCarry.join(', ') : (trek.thingsToCarry || '');
+    setThingsToCarry(carry);
+    const safety = Array.isArray(trek.safetyMeasures) ? trek.safetyMeasures.join(', ') : (trek.safetyMeasures || '');
+    setSafetyInstructions(safety);
     setCoordinatorName(trek.coordinatorName || '');
     setCoordinatorPhone(trek.coordinatorPhone || '');
     setTrekLeaderName(trek.trekLeaderName || '');
-    if (trek.assistantLeaders) {
-      try {
-        setAssistantLeadersText(JSON.parse(trek.assistantLeaders).join(', '));
-      } catch {
-        setAssistantLeadersText(trek.assistantLeaders);
-      }
+
+    const pts = Array.isArray(trek.pickupPoints) ? trek.pickupPoints : JSON.parse(trek.pickupPoints || '[]');
+    setPickupPoints(pts.length > 0 ? pts : [{ name: 'Kasara Station', time: '04:30 AM' }]);
+
+    const itin = Array.isArray(trek.itinerary) ? trek.itinerary : JSON.parse(trek.itinerary || '[]');
+    if (itin.length > 0) {
+      setItineraryDays(itin);
     } else {
-      setAssistantLeadersText('');
+      setItineraryDays([
+        {
+          day: 1,
+          title: 'Summit Climb & Descent',
+          activities: [
+            { time: '05:00 AM', activity: 'Base Village Arrival', desc: 'Reach base village' }
+          ]
+        }
+      ]);
     }
-    setBusNumber(trek.busNumber || 'Bus 1');
-    setWeatherNotes(trek.weatherNotes || '');
-    
-    setStep(1);
-    setActiveSubTab('NEW'); // Switch to editor mode
+
+    setMetaTitle(trek.metaTitle || '');
+    setMetaDescription(trek.metaDescription || '');
+    setPolicyId(trek.policyId || '');
+    setShowFormModal(true);
+    setOpenSection('basic');
   };
 
-  // CSV Export Action
-  const handleExportCSV = () => {
-    const itemsToExport = treks.filter(t => selectedIds.includes(t.id));
-    const finalItems = itemsToExport.length > 0 ? itemsToExport : treks;
-    
-    let csvContent = 'data:text/csv;charset=utf-8,';
-    csvContent += 'Trek Name,Slug,Category,Price,Seats,Date,Difficulty,Status\n';
-    
-    finalItems.forEach(t => {
-      csvContent += `"${t.title}","${t.slug}","${t.type}",${t.price},"${t.availableSeats}/${t.maxSeats}","${new Date(t.startDate).toLocaleDateString()}","${t.difficulty}","${t.status}"\n`;
+  // Submit Form Handler
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !coverImage.trim() || !price || !maxSeats || !startDate) {
+      showToast('Please fill in required fields (Name, Cover Image, Date, Seats, Price).', 'error');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const imagesArr = [coverImage.trim(), ...galleryImages.filter(img => img && img.trim())];
+      const carryArr = thingsToCarry.split(',').map(s => s.trim()).filter(Boolean);
+      const safetyArr = safetyInstructions.split(',').map(s => s.trim()).filter(Boolean);
+
+      const payload = {
+        title: title.trim(),
+        images: imagesArr,
+        type,
+        difficulty,
+        duration,
+        distance: parseFloat(distance) || 10,
+        altitude,
+        location: location.trim(),
+        googleMapsUrl: googleMapsUrl.trim(),
+        description: description.trim(),
+        startDate,
+        endDate: endDate || startDate,
+        maxSeats: parseInt(maxSeats),
+        price: parseFloat(price),
+        thingsToCarry: carryArr,
+        safetyMeasures: safetyArr,
+        coordinatorName: coordinatorName.trim(),
+        coordinatorPhone: coordinatorPhone.trim(),
+        trekLeaderName: trekLeaderName.trim(),
+        pickupPoints,
+        itinerary: itineraryDays,
+        faqs,
+        metaTitle,
+        metaDescription,
+        policyId: policyId || null,
+        status: editingTrekId ? undefined : 'OPEN_REGISTRATION'
+      };
+
+      if (editingTrekId) {
+        await api.events.update(editingTrekId, payload);
+        showToast('🟢 Saved ✓ Trek updated successfully!');
+      } else {
+        await api.events.create(payload);
+        showToast('🟢 Saved ✓ Trek created & published successfully!');
+      }
+
+      setShowFormModal(false);
+      resetForm();
+      fetchTrips();
+    } catch (err: any) {
+      console.error('Save trek error:', err);
+      showToast(err.message || 'Failed to save trek to database.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Delete Trek
+  const handleDelete = async (id: string, trekTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${trekTitle}"?`)) return;
+    try {
+      await api.events.delete(id);
+      showToast('Trek deleted successfully.');
+      fetchTrips();
+    } catch (err) {
+      console.error('Delete trek error:', err);
+      showToast('Failed to delete trek.', 'error');
+    }
+  };
+
+  // Toggle Publish / Draft
+  const handleTogglePublish = async (id: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'OPEN_REGISTRATION' ? 'DRAFT' : 'OPEN_REGISTRATION';
+    try {
+      await api.events.update(id, { status: nextStatus });
+      showToast(`Trek status updated to ${nextStatus === 'OPEN_REGISTRATION' ? 'Published' : 'Draft'}.`);
+      fetchTrips();
+    } catch (err) {
+      console.error('Toggle status error:', err);
+      showToast('Failed to update status.', 'error');
+    }
+  };
+
+  // Itinerary Helper Functions
+  const addDay = () => {
+    setItineraryDays(prev => [
+      ...prev,
+      {
+        day: prev.length + 1,
+        title: `Day ${prev.length + 1} Activity`,
+        activities: [{ time: '08:00 AM', activity: 'Morning Exploration', desc: 'Trail exploration' }]
+      }
+    ]);
+  };
+
+  const addActivity = (dayIndex: number) => {
+    setItineraryDays(prev => {
+      const updated = [...prev];
+      updated[dayIndex].activities.push({ time: '12:00 PM', activity: 'New Activity', desc: '' });
+      return updated;
     });
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `treks_export_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast('Trek CSV exported successfully.', 'success');
   };
-
-  // Filters
-  const filteredTreks = treks.filter(t => {
-    if (activeSubTab === 'DRAFT' && t.status !== 'DRAFT') return false;
-    if (activeSubTab === 'ARCHIVED' && t.status !== 'ARCHIVED') return false;
-    
-    const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || 
-                          t.location.toLowerCase().includes(search.toLowerCase());
-    const matchesDifficulty = !difficultyFilter || t.difficulty === difficultyFilter;
-    const matchesStatus = !statusFilter || t.status === statusFilter;
-    
-    return matchesSearch && matchesDifficulty && matchesStatus;
-  });
 
   return (
     <div className="space-y-6">
       
-      {/* Tab Selectors */}
-      <div className="flex border-b border-gray-150 font-sans font-bold">
-        {(['ALL', 'DRAFT', 'ARCHIVED', 'NEW'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => {
-              setActiveSubTab(tab);
-              if (tab !== 'NEW') {
-                setEditingTrekId(null);
-                resetForm();
-              }
-            }}
-            className={`px-6 py-3 border-b-2 text-xs uppercase font-extrabold tracking-wider transition-all cursor-pointer ${
-              activeSubTab === tab 
-                ? 'border-primary-orange text-primary-orange font-black' 
-                : 'border-transparent text-gray-400 hover:text-dark-charcoal'
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-2xl shadow-xl border font-bold text-xs flex items-center gap-2 ${
+              toast.type === 'success' 
+                ? 'bg-emerald-950 text-emerald-200 border-emerald-800' 
+                : 'bg-red-950 text-red-200 border-red-800'
             }`}
           >
-            {tab === 'NEW' ? (editingTrekId ? '✏️ Edit Trek' : '➕ Add Trek') : `${tab} TREKS`}
-          </button>
-        ))}
+            {toast.type === 'success' ? <CheckCircle2 className="h-4.5 w-4.5 text-emerald-400" /> : <AlertCircle className="h-4.5 w-4.5 text-red-400" />}
+            <span>{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-[24px] border border-gray-150 shadow-sm">
+        <div>
+          <h2 className="text-xl font-extrabold text-dark-charcoal font-display">Trek Management CMS</h2>
+          <p className="text-xs text-gray-500 font-medium mt-0.5">
+            Create, edit, publish, and manage all Sahyadri expeditions. Changes instantly sync to live site.
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            resetForm();
+            setShowFormModal(true);
+          }}
+          className="bg-primary-orange hover:bg-orange-600 text-white font-bold text-xs uppercase tracking-widest px-6 py-3.5 rounded-button shadow-md flex items-center gap-2 cursor-pointer transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Add New Trek</span>
+        </button>
       </div>
 
-      {activeSubTab !== 'NEW' ? (
-        /* CMS LIST VIEW */
-        <div className="bg-white p-6 sm:p-8 rounded-[24px] border border-gray-150 shadow-sm space-y-6">
-          
-          {/* Action and search strip */}
-          <div className="flex flex-col md:flex-row justify-between gap-4 font-semibold font-sans">
-            
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search trek name or basecamp..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-250 bg-white rounded-xl text-xs focus:outline-none focus:border-primary-orange font-semibold text-dark-charcoal"
-              />
-            </div>
-
-            {/* Filter controls */}
-            <div className="flex flex-wrap gap-2 text-xs font-semibold">
-              <select
-                value={difficultyFilter}
-                onChange={(e) => setDifficultyFilter(e.target.value)}
-                className="border border-gray-250 bg-white rounded-xl px-3 py-2 text-xs focus:outline-none font-semibold"
-              >
-                <option value="">All Difficulties</option>
-                <option value="Easy">Easy</option>
-                <option value="Moderate">Moderate</option>
-                <option value="Difficult">Difficult</option>
-              </select>
-
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-250 bg-white rounded-xl px-3 py-2 text-xs focus:outline-none font-semibold"
-              >
-                <option value="">All Statuses</option>
-                <option value="DRAFT">Draft</option>
-                <option value="OPEN_REGISTRATION">Open Registration</option>
-                <option value="REGISTRATION_CLOSED">Registration Closed</option>
-                <option value="UPCOMING">Upcoming</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
-
-              <button
-                type="button"
-                onClick={handleExportCSV}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer font-bold border border-gray-200"
-              >
-                <Download className="h-4 w-4" /> Export CSV
-              </button>
-            </div>
-          </div>
-
-          {/* List Table */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-orange" />
-            </div>
-          ) : filteredTreks.length === 0 ? (
-            <div className="text-center py-12 text-gray-400 font-semibold font-sans">No treks match the search criteria.</div>
-          ) : (
-            <div className="overflow-x-auto border border-gray-150 rounded-[20px]">
-              <table className="w-full text-xs text-left border-collapse bg-white">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
-                    <th className="p-4 pl-6">Cover</th>
-                    <th className="p-4">Trek Expedition</th>
-                    <th className="p-4">Next date</th>
-                    <th className="p-4">Price</th>
-                    <th className="p-4">Difficulty</th>
-                    <th className="p-4">Spots left</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4 text-center pr-6">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 font-sans font-semibold">
-                  {filteredTreks.map((t) => (
-                    <tr key={t.id} className="hover:bg-gray-50/50">
-                      <td className="p-4 pl-6">
-                        <div className="h-10 w-14 rounded-lg overflow-hidden bg-gray-100 border border-gray-150">
-                          {t.images && t.images[0] ? (
-                            <img src={t.images[0]} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="h-full w-full flex items-center justify-center text-gray-300">
-                              <Camera className="h-5 w-5" />
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <p className="font-bold text-dark-charcoal">{t.title}</p>
-                        <p className="text-[10px] text-gray-400 font-bold">{t.location}</p>
-                      </td>
-                      <td className="p-4 font-semibold text-gray-650">
-                        {new Date(t.startDate).toLocaleDateString()}
-                      </td>
-                      <td className="p-4 font-bold text-dark-charcoal font-display">₹{t.price}</td>
-                      <td className="p-4">
-                        <span className="font-bold bg-gray-100 px-2 py-0.5 rounded text-[10px] text-gray-700">
-                          {t.difficulty}
-                        </span>
-                      </td>
-                      <td className="p-4 font-semibold text-gray-650">
-                        {t.availableSeats} / {t.maxSeats}
-                      </td>
-                      <td className="p-4">
-                        <span className={`font-black text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                          t.status === 'OPEN_REGISTRATION' ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' :
-                          t.status === 'DRAFT' ? 'bg-gray-100 text-gray-500 border border-gray-150' :
-                          t.status === 'COMPLETED' ? 'bg-blue-50 text-blue-800' :
-                          'bg-amber-50 text-amber-800'
-                        }`}>
-                          {t.status.replace(/_/g, ' ')}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center pr-6 space-x-2">
-                        <button 
-                          type="button"
-                          onClick={() => handleEditTrekClick(t)} 
-                          className="p-2 border border-gray-200 hover:border-dark-charcoal text-gray-500 hover:text-dark-charcoal rounded-xl transition-all cursor-pointer bg-white"
-                          title="Edit"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={() => handleDuplicateTrek(t.id)} 
-                          className="p-2 border border-gray-200 hover:border-primary-orange text-gray-500 hover:text-primary-orange rounded-xl transition-all cursor-pointer bg-white"
-                          title="Duplicate"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
-                        {isSuperAdmin && (
-                          <button 
-                            type="button"
-                            onClick={() => handleDeleteTrek(t.id)} 
-                            className="p-2 border border-gray-200 hover:border-red-650 text-gray-500 hover:text-red-650 rounded-xl transition-all cursor-pointer bg-white"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+      {/* Treks Table */}
+      {loading ? (
+        <div className="bg-white border border-gray-150 rounded-[24px] p-12 text-center text-gray-400 font-bold text-xs">
+          Loading treks from database...
+        </div>
+      ) : trips.length === 0 ? (
+        <div className="bg-white border border-gray-150 rounded-[24px] p-16 text-center space-y-4">
+          <MapPin className="h-10 w-10 text-gray-300 mx-auto" />
+          <h3 className="text-base font-bold text-dark-charcoal font-display">No Treks Found</h3>
+          <p className="text-xs text-gray-400 font-semibold max-w-sm mx-auto">
+            Click "Add New Trek" above to create your first expedition.
+          </p>
         </div>
       ) : (
-        /* CMS STEPPER FORM */
-        <div className="bg-white p-6 sm:p-8 rounded-[24px] border border-gray-150 shadow-sm space-y-8">
-          
-          {/* Stepper Status Indicators */}
-          <div className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-150">
-            {[
-              { num: 1, name: 'Basic Info' },
-              { num: 2, name: 'Schedules & Slots' },
-              { num: 3, name: 'Pricing' },
-              { num: 4, name: 'Gallery Media' },
-              { num: 5, name: 'Timeline Builder' },
-              { num: 6, name: 'Pickups & Guides' },
-              { num: 7, name: 'SEO & Policy' }
-            ].map(s => (
-              <button
-                key={s.num}
-                type="button"
-                onClick={() => setStep(s.num)}
-                className={`flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest cursor-pointer transition-all ${
-                  step === s.num 
-                    ? 'text-primary-orange scale-102 font-black' 
-                    : 'text-gray-400 hover:text-dark-charcoal'
-                }`}
-              >
-                <span className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-extrabold ${
-                  step === s.num ? 'bg-primary-orange text-white' : 'bg-gray-200 text-gray-500'
-                }`}>
-                  {s.num}
-                </span>
-                <span className="hidden lg:inline">{s.name}</span>
-              </button>
-            ))}
-          </div>
+        <div className="bg-white border border-gray-150 rounded-[24px] overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-150 text-[10px] uppercase font-black text-gray-400 tracking-wider">
+                  <th className="py-4 px-6">Trek</th>
+                  <th className="py-4 px-4">Date</th>
+                  <th className="py-4 px-4">Status</th>
+                  <th className="py-4 px-4">Seats</th>
+                  <th className="py-4 px-4">Price</th>
+                  <th className="py-4 px-6 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-xs font-semibold text-dark-charcoal">
+                {trips.map((trip) => {
+                  const imgs = Array.isArray(trip.images) ? trip.images : JSON.parse(trip.images || '[]');
+                  const thumb = imgs[0] || 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=400';
+                  const isPublished = trip.status === 'OPEN_REGISTRATION';
 
-          <form onSubmit={handleSaveTrek} className="space-y-6 text-xs text-gray-650 font-semibold font-sans">
-            
-            {/* STEP 1: Basic Information */}
-            {step === 1 && (
-              <div className="space-y-4 animate-in fade-in duration-300">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Trek Title</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Kalsubai Summit Trek"
-                      value={title}
-                      onChange={(e) => handleTitleChange(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-primary-orange font-semibold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Slug identifier</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. kalsubai-summit-trek"
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Difficulty Level</label>
-                    <select
-                      value={difficulty}
-                      onChange={(e) => setDifficulty(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3 py-2.5 text-xs focus:outline-none font-semibold"
-                    >
-                      <option value="Easy">Easy</option>
-                      <option value="Moderate">Moderate</option>
-                      <option value="Difficult">Difficult</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Duration</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. 1 Day, 2 Days"
-                      value={duration}
-                      onChange={(e) => setDuration(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Distance (km)</label>
-                    <input
-                      type="number"
-                      placeholder="e.g. 12"
-                      value={distance}
-                      onChange={(e) => setDistance(parseFloat(e.target.value))}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Basecamp Location</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Bari Village, Maharashtra"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Max Altitude (e.g. 1646m)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 1646m"
-                      value={maxAltitude}
-                      onChange={(e) => setMaxAltitude(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Meeting Point</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Kopargaon Bus Stand / Shirdi"
-                      value={meetingPoint}
-                      onChange={(e) => setMeetingPoint(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Drop Point</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Kopargaon Bus Stand / Shirdi"
-                      value={endPoint}
-                      onChange={(e) => setEndPoint(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Short Description / Hook</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Brief 1-sentence hook showing on listings..."
-                    value={shortDesc}
-                    onChange={(e) => setShortDesc(e.target.value)}
-                    className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                  />
-                </div>
-
-                <RichTextEditor 
-                  label="Full Trek Description" 
-                  value={fullDesc} 
-                  onChange={setFullDesc} 
-                  placeholder="Conquer the peak..."
-                />
-              </div>
-            )}
-
-            {/* STEP 2: Schedules & Capacity */}
-            {step === 2 && (
-              <div className="space-y-4 animate-in fade-in duration-300">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider font-sans">Start Date & Time</label>
-                    <input
-                      type="datetime-local"
-                      required
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider font-sans">End Date & Time</label>
-                    <input
-                      type="datetime-local"
-                      required
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 pt-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Seats Limit</label>
-                    <input
-                      type="number"
-                      required
-                      value={maxSeats}
-                      onChange={(e) => setMaxSeats(parseInt(e.target.value))}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-bold text-dark-charcoal"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Reserved / Waitlist Seats</label>
-                    <input
-                      type="number"
-                      value={waitingSeats}
-                      onChange={(e) => setWaitingSeats(parseInt(e.target.value))}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-bold text-dark-charcoal"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 pt-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Trek Coordinator Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Atharva Dhawale"
-                      value={coordinatorName}
-                      onChange={(e) => setCoordinatorName(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Coordinator Phone Number</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. +91 9322340365"
-                      value={coordinatorPhone}
-                      onChange={(e) => setCoordinatorPhone(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 pt-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Main Trek Leader</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Atharva Dhawale"
-                      value={trekLeaderName}
-                      onChange={(e) => setTrekLeaderName(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Assistant Leaders (Comma separated)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Leader A, Leader B"
-                      value={assistantLeadersText}
-                      onChange={(e) => setAssistantLeadersText(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 pt-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Bus / Vehicle Designation</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Bus 1"
-                      value={busNumber}
-                      onChange={(e) => setBusNumber(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Weather & Climate Advisory Notes</label>
-                    <textarea
-                      placeholder="Expect monsoon showers, carry raincoats..."
-                      value={weatherNotes}
-                      onChange={(e) => setWeatherNotes(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                      rows={2}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3: Pricing */}
-            {step === 3 && (
-              <div className="space-y-4 animate-in fade-in duration-300">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Base Price (INR)</label>
-                    <input
-                      type="number"
-                      required
-                      value={price}
-                      onChange={(e) => setPrice(parseFloat(e.target.value))}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-bold text-primary-orange"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Discount Price Override (Optional)</label>
-                    <input
-                      type="number"
-                      value={discountPrice}
-                      onChange={(e) => setDiscountPrice(parseFloat(e.target.value))}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 4: Media Uploader */}
-            {step === 4 && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                
-                {/* Cover and banner */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  
-                  {/* Cover */}
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Trek Cover Image</label>
-                    {coverImage ? (
-                      <div className="relative rounded-2xl overflow-hidden aspect-video border border-gray-150 bg-gray-50 flex items-center justify-center">
-                        <img src={coverImage} alt="" className="h-full w-full object-cover" />
-                        <button type="button" onClick={() => setCoverImage('')} className="absolute top-2 right-2 bg-red-650 text-white rounded-full p-1.5 hover:bg-red-500 shadow-md transition-colors cursor-pointer border-none">
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-orange-500/50 transition-colors cursor-pointer relative bg-gray-50/50">
-                        <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'cover')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                        <span className="text-xs text-gray-500">Click to upload cover photo</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Banner */}
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Header Banner Image</label>
-                    {bannerImage ? (
-                      <div className="relative rounded-2xl overflow-hidden aspect-video border border-gray-150 bg-gray-50 flex items-center justify-center">
-                        <img src={bannerImage} alt="" className="h-full w-full object-cover" />
-                        <button type="button" onClick={() => setBannerImage('')} className="absolute top-2 right-2 bg-red-650 text-white rounded-full p-1.5 hover:bg-red-500 shadow-md transition-colors cursor-pointer border-none">
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-orange-500/50 transition-colors cursor-pointer relative bg-gray-50/50">
-                        <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'banner')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                        <span className="text-xs text-gray-500">Click to upload banner photo</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Multiple Gallery Manager */}
-                <div className="space-y-2 border-t border-gray-100 pt-4">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Trek Gallery Photos</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 border border-gray-150 rounded-2xl max-h-60 overflow-y-auto">
-                    {galleryImages.map((img, idx) => (
-                      <div key={idx} className="relative rounded-xl overflow-hidden aspect-square border border-gray-200 bg-white">
-                        <img src={img} alt="" className="h-full w-full object-cover" />
-                        <button type="button" onClick={() => setGalleryImages(prev => prev.filter((_, i) => i !== idx))} className="absolute top-1.5 right-1.5 bg-red-650 text-white rounded-full p-1 hover:bg-red-500 shadow-md transition-colors cursor-pointer border-none">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                    <div className="border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center hover:border-orange-500/50 transition-colors relative aspect-square bg-white shadow-sm">
-                      <input type="file" accept="image/*" multiple onChange={(e) => handleImageUpload(e, 'gallery')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                      <Plus className="h-6 w-6 text-gray-400" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 5: Dynamic Itinerary Builder */}
-            {step === 5 && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                
-                {/* Templates Selector */}
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h4 className="text-xs font-bold text-dark-charcoal uppercase">Itinerary Templates</h4>
-                    <p className="text-[9px] text-gray-400 font-bold mt-0.5">Pre-fill schedule layout with standard templates.</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => applyItineraryTemplate('ONE_DAY')} className="bg-white border border-gray-250 hover:border-primary-orange px-4 py-2 rounded-xl text-[10px] font-extrabold uppercase tracking-wider cursor-pointer font-bold">One-Day Trek</button>
-                    <button type="button" onClick={() => applyItineraryTemplate('WEEKEND')} className="bg-white border border-gray-250 hover:border-primary-orange px-4 py-2 rounded-xl text-[10px] font-extrabold uppercase tracking-wider cursor-pointer font-bold">Weekend Trek</button>
-                  </div>
-                </div>
-
-                {/* Day Roster list */}
-                <div className="space-y-4">
-                  {itinerary.map((day, dIdx) => (
-                    <div key={day.dayNumber} className="bg-white border border-gray-150 rounded-[20px] p-5 space-y-4">
-                      
-                      {/* Day Header details */}
-                      <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="bg-orange-50 text-primary-orange text-xs font-black px-3 py-1 rounded-lg">Day {day.dayNumber}</span>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Day Title (e.g. Summit ascent)"
-                            value={day.dayTitle}
-                            onChange={(e) => {
-                              const updated = [...itinerary];
-                              updated[dIdx].dayTitle = e.target.value;
-                              setItinerary(updated);
-                            }}
-                            className="border-none font-bold text-sm text-dark-charcoal focus:outline-none"
+                  return (
+                    <tr key={trip.id} className="hover:bg-gray-50/80 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={thumb}
+                            alt=""
+                            className="h-12 w-16 object-cover rounded-xl border border-gray-150 flex-shrink-0"
+                            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=400'; }}
                           />
+                          <div>
+                            <p className="font-bold text-dark-charcoal font-display text-sm">{trip.title}</p>
+                            <p className="text-[10px] text-gray-400 font-semibold">{trip.location}</p>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          {dIdx > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = [...itinerary];
-                                const temp = updated[dIdx];
-                                updated[dIdx] = updated[dIdx - 1];
-                                updated[dIdx - 1] = temp;
-                                // Re-index
-                                updated.forEach((d, i) => d.dayNumber = i + 1);
-                                setItinerary(updated);
-                              }}
-                              className="p-1.5 text-gray-400 hover:text-primary-orange border border-gray-200 rounded-lg cursor-pointer bg-white shadow-sm"
-                            >
-                              <ArrowUp className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                          {dIdx < itinerary.length - 1 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = [...itinerary];
-                                const temp = updated[dIdx];
-                                updated[dIdx] = updated[dIdx + 1];
-                                updated[dIdx + 1] = temp;
-                                // Re-index
-                                updated.forEach((d, i) => d.dayNumber = i + 1);
-                                setItinerary(updated);
-                              }}
-                              className="p-1.5 text-gray-400 hover:text-primary-orange border border-gray-200 rounded-lg cursor-pointer bg-white shadow-sm"
-                            >
-                              <ArrowDown className="h-3.5 w-3.5" />
-                            </button>
-                          )}
+                      </td>
+
+                      <td className="py-4 px-4 text-xs font-bold text-gray-600">
+                        {trip.startDate ? new Date(trip.startDate).toLocaleDateString() : 'N/A'}
+                      </td>
+
+                      <td className="py-4 px-4">
+                        <span className={`inline-block text-[9px] uppercase font-extrabold px-2.5 py-1 rounded-full border ${
+                          isPublished
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {isPublished ? 'Published' : 'Draft'}
+                        </span>
+                      </td>
+
+                      <td className="py-4 px-4 text-xs font-bold text-gray-600">
+                        {trip.availableSeats ?? trip.maxSeats} / {trip.maxSeats}
+                      </td>
+
+                      <td className="py-4 px-4 font-extrabold text-dark-charcoal font-display">
+                        ₹{trip.price}
+                      </td>
+
+                      <td className="py-4 px-6 text-right">
+                        <div className="flex items-center justify-end gap-2">
                           <button
-                            type="button"
-                            onClick={() => removeDay(dIdx)}
-                            className="p-1.5 text-gray-400 hover:text-red-650 border border-gray-200 rounded-lg cursor-pointer bg-white shadow-sm"
+                            onClick={() => handleTogglePublish(trip.id, trip.status)}
+                            title={isPublished ? 'Unpublish Trek' : 'Publish Trek'}
+                            className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                              isPublished
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                            }`}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            {isPublished ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+
+                          <button
+                            onClick={() => handleEdit(trip)}
+                            title="Edit Trek"
+                            className="p-2 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200 cursor-pointer transition-colors"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            onClick={() => handleDelete(trip.id, trip.title)}
+                            title="Delete Trek"
+                            className="p-2 rounded-xl bg-red-50 text-red-650 hover:bg-red-100 border border-red-200 cursor-pointer transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
-                      </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-                      {/* Day summary */}
+      {/* FORM MODAL (Single Page Collapsible Accordion) */}
+      {showFormModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-gray-150 rounded-[28px] max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl my-auto">
+            
+            {/* Modal Header */}
+            <div className="px-8 py-5 border-b border-gray-150 flex items-center justify-between bg-gray-50 rounded-t-[28px]">
+              <div>
+                <h3 className="text-lg font-extrabold text-dark-charcoal font-display">
+                  {editingTrekId ? 'Edit Trek Expedition' : 'Add New Trek'}
+                </h3>
+                <p className="text-xs text-gray-500 font-semibold">Fill in basic details to publish on the live site.</p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={saving}
+                  className="bg-primary-orange hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-widest px-6 py-2.5 rounded-button shadow-md flex items-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{saving ? 'Saving...' : editingTrekId ? 'Update Trek' : 'Save & Publish Trek'}</span>
+                </button>
+
+                <button
+                  onClick={() => setShowFormModal(false)}
+                  className="p-2 text-gray-400 hover:text-dark-charcoal rounded-full bg-white border border-gray-200"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body: Single Page Collapsible Sections */}
+            <form onSubmit={handleSubmit} className="p-8 overflow-y-auto space-y-4 flex-1">
+
+              {/* SECTION 1: Basic Information */}
+              <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setOpenSection(openSection === 'basic' ? '' : 'basic')}
+                  className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100/80 flex items-center justify-between font-bold text-sm text-dark-charcoal font-display transition-colors"
+                >
+                  <span>1. Basic Information <span className="text-xs text-red-500 font-normal">*Required</span></span>
+                  {openSection === 'basic' ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                </button>
+
+                {openSection === 'basic' && (
+                  <div className="p-6 space-y-4 border-t border-gray-150">
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Trek Name *</label>
                       <input
                         type="text"
-                        placeholder="Short summary description of this day..."
-                        value={day.shortSummary}
-                        onChange={(e) => {
-                          const updated = [...itinerary];
-                          updated[dIdx].shortSummary = e.target.value;
-                          setItinerary(updated);
-                        }}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none font-semibold"
+                        required
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. Kalsubai Summit Trek"
+                        className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
                       />
+                    </div>
 
-                      {/* Day Stats */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-semibold">
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-gray-400 mb-1">Accommodation</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. lakeside camp"
-                            value={day.accommodation || ''}
-                            onChange={(e) => {
-                              const updated = [...itinerary];
-                              updated[dIdx].accommodation = e.target.value;
-                              setItinerary(updated);
-                            }}
-                            className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-gray-400 mb-1">Trek Distance (km)</label>
-                          <input
-                            type="number"
-                            value={day.distanceCovered || 0}
-                            onChange={(e) => {
-                              const updated = [...itinerary];
-                              updated[dIdx].distanceCovered = parseFloat(e.target.value);
-                              setItinerary(updated);
-                            }}
-                            className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-gray-400 mb-1">Trek Duration</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 5 Hours"
-                            value={day.trekDuration || ''}
-                            onChange={(e) => {
-                              const updated = [...itinerary];
-                              updated[dIdx].trekDuration = e.target.value;
-                              setItinerary(updated);
-                            }}
-                            className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-gray-400 mb-1">Elevation Gain (m)</label>
-                          <input
-                            type="number"
-                            value={day.elevationGain || 0}
-                            onChange={(e) => {
-                              const updated = [...itinerary];
-                              updated[dIdx].elevationGain = parseFloat(e.target.value);
-                              setItinerary(updated);
-                            }}
-                            className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none"
-                          />
-                        </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Cover Image URL *</label>
+                        <input
+                          type="text"
+                          required
+                          value={coverImage}
+                          onChange={(e) => setCoverImage(e.target.value)}
+                          placeholder="https://images.unsplash.com/photo..."
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
                       </div>
 
-                      {/* Inner timeline builder */}
-                      <div className="space-y-3 pt-3 border-t border-gray-100">
-                        <h5 className="text-[10px] uppercase tracking-widest text-primary-orange font-bold">Timeline Events</h5>
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Trek Type</label>
+                        <select
+                          value={type}
+                          onChange={(e) => setType(e.target.value)}
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange bg-white"
+                        >
+                          <option value="TREK">Monsoon / Mountain Trek</option>
+                          <option value="CAMPING">Wilderness Camping</option>
+                          <option value="SAFARI">Nature Safari</option>
+                          <option value="BACKPACKING">Expedition Tour</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Difficulty</label>
+                        <select
+                          value={difficulty}
+                          onChange={(e) => setDifficulty(e.target.value)}
+                          className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange bg-white"
+                        >
+                          <option value="EASY">Easy</option>
+                          <option value="MODERATE">Moderate</option>
+                          <option value="DIFFICULT">Challenging / Hard</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Duration</label>
+                        <input
+                          type="text"
+                          value={duration}
+                          onChange={(e) => setDuration(e.target.value)}
+                          placeholder="e.g. 1 Day"
+                          className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Distance</label>
+                        <input
+                          type="text"
+                          value={distance}
+                          onChange={(e) => setDistance(e.target.value)}
+                          placeholder="e.g. 10 km"
+                          className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Max Altitude</label>
+                        <input
+                          type="text"
+                          value={altitude}
+                          onChange={(e) => setAltitude(e.target.value)}
+                          placeholder="e.g. 1646m"
+                          className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Base Location</label>
+                        <input
+                          type="text"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          placeholder="e.g. Bari Village, Igatpuri"
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Google Maps Link</label>
+                        <input
+                          type="text"
+                          value={googleMapsUrl}
+                          onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                          placeholder="https://maps.google.com/..."
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Short Description *</label>
+                      <textarea
+                        rows={3}
+                        required
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Overview of the trek expedition..."
+                        className="w-full border border-gray-250 rounded-xl p-4 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 2: Dates & Pricing */}
+              <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setOpenSection(openSection === 'dates' ? '' : 'dates')}
+                  className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100/80 flex items-center justify-between font-bold text-sm text-dark-charcoal font-display transition-colors"
+                >
+                  <span>2. Dates & Pricing <span className="text-xs text-red-500 font-normal">*Required</span></span>
+                  {openSection === 'dates' ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                </button>
+
+                {openSection === 'dates' && (
+                  <div className="p-6 grid grid-cols-1 sm:grid-cols-4 gap-4 border-t border-gray-150">
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Trek Date *</label>
+                      <input
+                        type="datetime-local"
+                        required
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Registration Close</label>
+                      <input
+                        type="datetime-local"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Total Seats *</label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        value={maxSeats}
+                        onChange={(e) => setMaxSeats(e.target.value)}
+                        className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Price (INR) *</label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange font-bold text-primary-orange"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 3: Trek Details & Leaders */}
+              <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setOpenSection(openSection === 'details' ? '' : 'details')}
+                  className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100/80 flex items-center justify-between font-bold text-sm text-dark-charcoal font-display transition-colors"
+                >
+                  <span>3. Trek Details & Leaders (Optional)</span>
+                  {openSection === 'details' ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                </button>
+
+                {openSection === 'details' && (
+                  <div className="p-6 space-y-4 border-t border-gray-150">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Things to Carry (Comma separated)</label>
+                        <input
+                          type="text"
+                          value={thingsToCarry}
+                          onChange={(e) => setThingsToCarry(e.target.value)}
+                          placeholder="Trekking shoes, 2L water, Raincoat"
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Safety Instructions</label>
+                        <input
+                          type="text"
+                          value={safetyInstructions}
+                          onChange={(e) => setSafetyInstructions(e.target.value)}
+                          placeholder="Follow lead guide instructions"
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Coordinator Name</label>
+                        <input
+                          type="text"
+                          value={coordinatorName}
+                          onChange={(e) => setCoordinatorName(e.target.value)}
+                          placeholder="e.g. Atharva Dhawale"
+                          className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Coordinator Phone</label>
+                        <input
+                          type="text"
+                          value={coordinatorPhone}
+                          onChange={(e) => setCoordinatorPhone(e.target.value)}
+                          placeholder="+91 9322340365"
+                          className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Trek Lead / Guide Name</label>
+                        <input
+                          type="text"
+                          value={trekLeaderName}
+                          onChange={(e) => setTrekLeaderName(e.target.value)}
+                          placeholder="e.g. Sagar Jadhav"
+                          className="w-full border border-gray-250 rounded-xl px-3 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Pickup Points */}
+                    <div className="space-y-2 pt-2">
+                      <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Pickup Locations</label>
+                      {pickupPoints.map((pt, idx) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            placeholder="Location (e.g. Kasara Station)"
+                            value={pt.name}
+                            onChange={(e) => {
+                              const updated = [...pickupPoints];
+                              updated[idx].name = e.target.value;
+                              setPickupPoints(updated);
+                            }}
+                            className="flex-1 border border-gray-250 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Time (e.g. 04:30 AM)"
+                            value={pt.time}
+                            onChange={(e) => {
+                              const updated = [...pickupPoints];
+                              updated[idx].time = e.target.value;
+                              setPickupPoints(updated);
+                            }}
+                            className="w-32 border border-gray-250 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setPickupPoints(pickupPoints.filter((_, i) => i !== idx))}
+                            className="text-gray-400 hover:text-red-500 p-2"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setPickupPoints([...pickupPoints, { name: '', time: '' }])}
+                        className="text-[10px] font-bold text-primary-orange flex items-center gap-1 mt-1 hover:underline cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Add Pickup Location
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 4: Simple Itinerary */}
+              <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setOpenSection(openSection === 'itinerary' ? '' : 'itinerary')}
+                  className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100/80 flex items-center justify-between font-bold text-sm text-dark-charcoal font-display transition-colors"
+                >
+                  <span>4. Itinerary (Day Wise Schedule)</span>
+                  {openSection === 'itinerary' ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                </button>
+
+                {openSection === 'itinerary' && (
+                  <div className="p-6 space-y-6 border-t border-gray-150">
+                    {itineraryDays.map((dayItem, dIdx) => (
+                      <div key={dIdx} className="bg-gray-50 p-5 rounded-2xl border border-gray-150 space-y-4">
+                        <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                          <h4 className="text-xs font-bold font-display text-primary-orange uppercase tracking-wider">
+                            Day {dayItem.day}
+                          </h4>
+                          <input
+                            type="text"
+                            placeholder="Day Title (e.g. Summit Ascent)"
+                            value={dayItem.title}
+                            onChange={(e) => {
+                              const updated = [...itineraryDays];
+                              updated[dIdx].title = e.target.value;
+                              setItineraryDays(updated);
+                            }}
+                            className="bg-white border border-gray-250 rounded-xl px-3 py-1.5 text-xs font-semibold flex-1 max-w-xs ml-3"
+                          />
+                        </div>
+
+                        {/* Activities list */}
                         <div className="space-y-3">
-                          {day.activities.map((act: any, aIdx: number) => (
-                            <div key={aIdx} className="p-3 bg-gray-50 border border-gray-150 rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                          {dayItem.activities.map((act, aIdx) => (
+                            <div key={aIdx} className="bg-white p-3 rounded-xl border border-gray-200 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
                               <input
                                 type="text"
+                                placeholder="Time (05:00 AM)"
                                 value={act.time}
                                 onChange={(e) => {
-                                  const updated = [...itinerary];
+                                  const updated = [...itineraryDays];
                                   updated[dIdx].activities[aIdx].time = e.target.value;
-                                  setItinerary(updated);
+                                  setItineraryDays(updated);
                                 }}
-                                className="w-20 border border-gray-250 bg-white rounded-lg px-2 py-1 text-xs text-center focus:outline-none font-bold"
+                                className="w-28 border border-gray-250 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
                               />
                               <input
                                 type="text"
-                                value={act.title}
+                                placeholder="Activity Name"
+                                value={act.activity}
                                 onChange={(e) => {
-                                  const updated = [...itinerary];
-                                  updated[dIdx].activities[aIdx].title = e.target.value;
-                                  setItinerary(updated);
+                                  const updated = [...itineraryDays];
+                                  updated[dIdx].activities[aIdx].activity = e.target.value;
+                                  setItineraryDays(updated);
                                 }}
-                                placeholder="Activity title"
-                                className="flex-1 border border-gray-250 bg-white rounded-lg px-2.5 py-1 text-xs focus:outline-none font-bold text-dark-charcoal"
+                                className="flex-1 border border-gray-250 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
                               />
-                              <select
-                                value={act.icon}
+                              <input
+                                type="text"
+                                placeholder="Short description"
+                                value={act.desc}
                                 onChange={(e) => {
-                                  const updated = [...itinerary];
-                                  updated[dIdx].activities[aIdx].icon = e.target.value;
-                                  setItinerary(updated);
+                                  const updated = [...itineraryDays];
+                                  updated[dIdx].activities[aIdx].desc = e.target.value;
+                                  setItineraryDays(updated);
                                 }}
-                                className="border border-gray-250 bg-white rounded-lg px-2 py-1 text-xs focus:outline-none"
-                              >
-                                {ICON_OPTIONS.map(opt => (
-                                  <option key={opt.name} value={opt.name}>{opt.name}</option>
-                                ))}
-                              </select>
+                                className="flex-1 border border-gray-250 rounded-lg px-2.5 py-1.5 text-xs font-semibold"
+                              />
                               <button
                                 type="button"
-                                onClick={() => removeActivity(dIdx, aIdx)}
-                                className="text-gray-400 hover:text-red-650 p-1 cursor-pointer bg-white border border-gray-200 rounded-lg"
+                                onClick={() => {
+                                  setItineraryDays(prev => {
+                                    const updated = [...prev];
+                                    updated[dIdx].activities = updated[dIdx].activities.filter((_, i) => i !== aIdx);
+                                    return updated;
+                                  });
+                                }}
+                                className="text-gray-400 hover:text-red-500 p-1"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           ))}
+
                           <button
                             type="button"
                             onClick={() => addActivity(dIdx)}
-                            className="bg-orange-50 text-primary-orange font-bold text-[10px] uppercase tracking-wider px-3.5 py-2 rounded-xl flex items-center gap-1 cursor-pointer border border-orange-100 hover:bg-orange-100/50"
+                            className="text-[10px] font-bold text-primary-orange flex items-center gap-1 hover:underline cursor-pointer"
                           >
-                            <Plus className="h-3.5 w-3.5" /> Add Timeline Event
+                            <Plus className="h-3.5 w-3.5" /> Add Activity to Day {dayItem.day}
                           </button>
                         </div>
                       </div>
-
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={addDay}
-                    className="w-full border-2 border-dashed border-gray-250 text-gray-500 font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-2xl hover:border-primary-orange/50 hover:text-primary-orange transition-colors cursor-pointer"
-                  >
-                    ➕ Add Journey Day
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 6: Pickups & Guides */}
-            {step === 6 && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                
-                {/* Trek Leaders */}
-                <div className="space-y-3">
-                  <h4 className="text-xs uppercase tracking-widest text-primary-orange font-bold border-b border-gray-150 pb-2">Leaders Assignment</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Trek Guide / Leaders</label>
-                      <select
-                        multiple
-                        value={selectedLeaderIds}
-                        onChange={(e) => {
-                          const values = Array.from(e.target.selectedOptions, option => option.value);
-                          setSelectedLeaderIds(values);
-                        }}
-                        className="w-full border border-gray-250 bg-white rounded-xl p-2.5 text-xs focus:outline-none min-h-28 font-semibold"
-                      >
-                        {leadersList.map(l => (
-                          <option key={l.id} value={l.id}>{l.name} ({l.role})</option>
-                        ))}
-                      </select>
-                      <span className="text-[9px] text-gray-400 block font-bold">Hold Ctrl / Cmd to select multiple guides.</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pickup Points */}
-                <div className="space-y-3 border-t border-gray-100 pt-4">
-                  <h4 className="text-xs uppercase tracking-widest text-primary-orange font-bold border-b border-gray-150 pb-2">Pickup Locations</h4>
-                  <div className="space-y-3">
-                    {pickupPoints.map((pt, idx) => (
-                      <div key={idx} className="p-3.5 bg-gray-50 border border-gray-150 rounded-2xl flex flex-col sm:flex-row gap-3 items-center">
-                        <input
-                          type="text"
-                          placeholder="e.g. Pune Station"
-                          required
-                          value={pt.name}
-                          onChange={(e) => {
-                            const updated = [...pickupPoints];
-                            updated[idx].name = e.target.value;
-                            setPickupPoints(updated);
-                          }}
-                          className="flex-1 border border-gray-250 bg-white rounded-xl px-3 py-2 text-xs focus:outline-none font-bold"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Time (e.g. 10:30 PM)"
-                          required
-                          value={pt.time}
-                          onChange={(e) => {
-                            const updated = [...pickupPoints];
-                            updated[idx].time = e.target.value;
-                            setPickupPoints(updated);
-                          }}
-                          className="w-40 border border-gray-250 bg-white rounded-xl px-3 py-2 text-xs focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setPickupPoints(prev => prev.filter((_, i) => i !== idx))}
-                          className="text-gray-400 hover:text-red-650 p-2 cursor-pointer border border-gray-200 rounded-xl bg-white"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
                     ))}
+
                     <button
                       type="button"
-                      onClick={() => setPickupPoints([...pickupPoints, { name: '', time: '', googleMapsUrl: '' }])}
-                      className="bg-white border border-gray-250 hover:border-primary-orange text-gray-500 font-extrabold text-[10px] uppercase tracking-wider px-4 py-2.5 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      onClick={addDay}
+                      className="bg-white border border-gray-250 hover:border-primary-orange text-dark-charcoal font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-sm"
                     >
-                      <Plus className="h-4 w-4" /> Add Pickup Point
+                      <Plus className="h-4 w-4 text-primary-orange" />
+                      <span>Add Day {itineraryDays.length + 1}</span>
                     </button>
                   </div>
-                </div>
+                )}
               </div>
-            )}
 
-            {/* STEP 7: FAQ & SEO */}
-            {step === 7 && (
-              <div className="space-y-4 animate-in fade-in duration-300">
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider font-sans">Assign Waiver Policy</label>
-                  <select
-                    value={policyId}
-                    onChange={(e) => setPolicyId(e.target.value)}
-                    className="w-full border border-gray-250 bg-white rounded-xl px-3 py-2.5 text-xs focus:outline-none font-semibold"
-                  >
-                    <option value="">No custom policy (Use default settings)</option>
-                    {policies.map(p => (
-                      <option key={p.id} value={p.id}>{p.title}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 pt-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Meta SEO Title</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Kalsubai Peak Trek Maharashtra"
-                      value={metaTitle}
-                      onChange={(e) => setMetaTitle(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Meta SEO Description</label>
-                    <input
-                      type="text"
-                      placeholder="Conquer the highest peak of Maharashtra..."
-                      value={metaDescription}
-                      onChange={(e) => setMetaDescription(e.target.value)}
-                      className="w-full border border-gray-250 bg-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-semibold"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Stepper Footer Controls */}
-            <div className="flex justify-between border-t border-gray-150 pt-6">
-              <button
-                type="button"
-                disabled={step === 1}
-                onClick={() => setStep(prev => prev - 1)}
-                className="border border-gray-250 text-gray-500 font-bold text-[10px] uppercase tracking-wider px-5 py-2.5 rounded-xl disabled:opacity-40 cursor-pointer"
-              >
-                Previous
-              </button>
-
-              {step < 7 ? (
+              {/* SECTION 5: Advanced Settings */}
+              <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm">
                 <button
                   type="button"
-                  onClick={() => setStep(prev => prev + 1)}
-                  className="bg-primary-orange text-white font-bold text-[10px] uppercase tracking-widest px-6 py-2.5 rounded-xl cursor-pointer"
+                  onClick={() => setOpenSection(openSection === 'advanced' ? '' : 'advanced')}
+                  className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100/80 flex items-center justify-between font-bold text-sm text-dark-charcoal font-display transition-colors"
                 >
-                  Next Step
+                  <span>5. Advanced Settings & SEO (Optional)</span>
+                  {openSection === 'advanced' ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
                 </button>
-              ) : (
+
+                {openSection === 'advanced' && (
+                  <div className="p-6 space-y-4 border-t border-gray-150">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">SEO Title</label>
+                        <input
+                          type="text"
+                          value={metaTitle}
+                          onChange={(e) => setMetaTitle(e.target.value)}
+                          placeholder="e.g. Kalsubai Peak Trek Maharashtra"
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Waiver Policy</label>
+                        <select
+                          value={policyId}
+                          onChange={(e) => setPolicyId(e.target.value)}
+                          className="w-full border border-gray-250 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-primary-orange bg-white"
+                        >
+                          <option value="">Default TrekWari Safety Policy</option>
+                          {policies.map((p) => (
+                            <option key={p.id} value={p.id}>{p.title}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Submit Action Bar */}
+              <div className="pt-4 border-t border-gray-150 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowFormModal(false)}
+                  className="px-6 py-3 rounded-xl border border-gray-250 text-gray-600 font-bold text-xs uppercase tracking-wider hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
-                  className="bg-primary-orange hover:bg-orange-600 text-white font-bold text-[10px] uppercase tracking-widest px-7 py-2.5 rounded-xl flex items-center gap-1.5 cursor-pointer border-none"
+                  disabled={saving}
+                  className="bg-primary-orange hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-widest px-8 py-3 rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-colors"
                 >
-                  <Save className="h-4 w-4" /> {editingTrekId ? 'Update Trek' : 'Save Trek Draft'}
+                  <Save className="h-4 w-4" />
+                  <span>{saving ? 'Saving...' : editingTrekId ? 'Update Trek' : 'Save & Publish Trek'}</span>
                 </button>
-              )}
-            </div>
+              </div>
 
-          </form>
+            </form>
+
+          </div>
         </div>
       )}
 

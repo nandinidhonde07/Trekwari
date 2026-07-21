@@ -174,6 +174,7 @@ export const api = {
       const query = new URLSearchParams(filters).toString();
       return apiFetch(`/events${query ? `?${query}` : ''}`);
     },
+    adminList: () => apiFetch('/events?status=ALL'),
     get: (slug: string) => apiFetch(`/events/${slug}`),
     create: (data: any) => apiFetch('/events', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => apiFetch(`/events/${id}`, { method: 'PUT', body: JSON.stringify(data) }),

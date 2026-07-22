@@ -20,6 +20,22 @@ export async function getEvents(req: Request, res: Response) {
   const { search, type, difficulty, status, minPrice, maxPrice } = req.query;
 
   try {
+    const now = new Date();
+
+    // Auto-transition past events to COMPLETED status
+    try {
+      await prisma.event.updateMany({
+        where: {
+          status: { in: ['OPEN_REGISTRATION', 'UPCOMING', 'ONGOING'] },
+          endDate: { lt: now },
+          isDeleted: false
+        },
+        data: { status: 'COMPLETED' }
+      });
+    } catch (autoErr) {
+      console.warn('Auto-complete past events non-critical notice:', autoErr);
+    }
+
     const whereClause: any = { isDeleted: false };
 
     if (search) {
@@ -33,11 +49,15 @@ export async function getEvents(req: Request, res: Response) {
     if (type) whereClause.type = String(type);
     if (difficulty) whereClause.difficulty = String(difficulty);
     
-    // Default to active registrations or completed in listing, or specific status if requested
+    // Status filter handling
     if (status) {
-      whereClause.status = String(status);
+      if (String(status) === 'ALL') {
+        // Return all non-deleted events for admin
+      } else {
+        whereClause.status = String(status);
+      }
     } else {
-      // Exclude drafts from public listing
+      // Default public listing excludes DRAFT
       whereClause.status = { not: 'DRAFT' };
     }
 
@@ -47,9 +67,11 @@ export async function getEvents(req: Request, res: Response) {
       if (maxPrice) whereClause.price.lte = parseFloat(String(maxPrice));
     }
 
+    const sortOrder: any = String(status) === 'COMPLETED' ? { startDate: 'desc' } : { startDate: 'asc' };
+
     const events = await prisma.event.findMany({
       where: whereClause,
-      orderBy: { startDate: 'asc' },
+      orderBy: sortOrder,
       include: {
         leaders: {
           include: {

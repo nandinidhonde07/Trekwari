@@ -20,6 +20,7 @@ export function TrekCMSManager({ policies = [] }: TrekCMSManagerProps) {
   const [editingTrekId, setEditingTrekId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>('ALL'); // ALL | UPCOMING | ONGOING | COMPLETED | DRAFT | CANCELLED
 
   // Accordion open state inside form
   const [openSection, setOpenSection] = useState<string>('basic'); // 'basic' | 'dates' | 'details' | 'itinerary' | 'advanced'
@@ -340,6 +341,23 @@ export function TrekCMSManager({ policies = [] }: TrekCMSManagerProps) {
         </button>
       </div>
 
+      {/* Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {['ALL', 'OPEN_REGISTRATION', 'ONGOING', 'COMPLETED', 'DRAFT', 'CANCELLED'].map(status => (
+          <button
+            key={status}
+            onClick={() => setFilterStatus(status)}
+            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${
+              filterStatus === status 
+                ? 'bg-dark-charcoal text-white' 
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {status === 'OPEN_REGISTRATION' ? 'Upcoming' : status}
+          </button>
+        ))}
+      </div>
+
       {/* Treks Table */}
       {loading ? (
         <div className="bg-white border border-gray-150 rounded-[24px] p-12 text-center text-gray-400 font-bold text-xs">
@@ -368,7 +386,7 @@ export function TrekCMSManager({ policies = [] }: TrekCMSManagerProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-xs font-semibold text-dark-charcoal">
-                {trips.map((trip) => {
+                {trips.filter(t => filterStatus === 'ALL' || t.status === filterStatus).map((trip) => {
                   const imgs = Array.isArray(trip.images) ? trip.images : JSON.parse(trip.images || '[]');
                   const thumb = imgs[0] || 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=400';
                   const isPublished = trip.status === 'OPEN_REGISTRATION';

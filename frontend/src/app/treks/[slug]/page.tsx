@@ -1037,7 +1037,14 @@ export default function TrekDetailsPage() {
                 </div>
 
                 {/* Primary Orange Booking CTA */}
-                {trek.status === 'OPEN_REGISTRATION' ? (
+                {trek.status === 'COMPLETED' ? (
+                  <Link
+                    href="/gallery"
+                    className="w-full bg-blue-600 hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] text-white text-xs font-bold uppercase tracking-widest py-4 rounded-button shadow-md shadow-blue-500/10 flex justify-center items-center transition-all duration-300"
+                  >
+                    View Memories
+                  </Link>
+                ) : trek.status === 'OPEN_REGISTRATION' ? (
                   <button
                     onClick={() => setBookingDrawerOpen(true)}
                     className="w-full bg-primary-orange hover:bg-orange-600 hover:scale-[1.02] active:scale-[0.98] text-white text-xs font-bold uppercase tracking-widest py-4 rounded-button shadow-md shadow-orange-500/10 cursor-pointer text-center transition-all duration-300"
@@ -1049,7 +1056,7 @@ export default function TrekDetailsPage() {
                     disabled
                     className="w-full bg-gray-200 text-gray-400 text-xs font-bold uppercase tracking-widest py-4 rounded-button cursor-not-allowed text-center"
                   >
-                    Completed
+                    {trek.status === 'REGISTRATION_CLOSED' ? 'Registration Closed' : trek.status === 'UPCOMING' ? 'Coming Soon' : 'Unavailable'}
                   </button>
                 )}
 

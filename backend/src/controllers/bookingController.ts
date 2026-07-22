@@ -59,6 +59,17 @@ export async function createBooking(req: AuthRequest, res: Response) {
       return res.status(404).json({ error: 'Trekking event not found.' });
     }
 
+    // Check if event is completed or past
+    const now = new Date();
+    if (event.status === 'COMPLETED' || new Date(event.endDate || event.startDate) < now) {
+      return res.status(400).json({ error: 'This expedition has already been completed. Bookings are closed.' });
+    }
+
+    // Check if event is archived or not open
+    if (event.status === 'CANCELLED' || event.status === 'DRAFT' || event.isDeleted) {
+      return res.status(400).json({ error: 'This expedition is not currently available for booking.' });
+    }
+
     if (event.status !== 'OPEN_REGISTRATION') {
       return res.status(400).json({ error: 'Registrations are currently closed for this trek.' });
     }
